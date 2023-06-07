@@ -1,0 +1,28 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "unknown": "Unexpected error"
+        },
+        "step": {
+            "parent": {
+                "data": {
+                    "child": "Child"
+                }
+            },
+            "user": {
+                "data": {
+                    "account_type": "Account type",
+                    "ent": "ENT",
+                    "password": "Password",
+                    "url": "URL",
+                    "username": "Username"
+                }
+            }
+        }
+    }
+}

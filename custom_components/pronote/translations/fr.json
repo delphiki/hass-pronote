@@ -1,0 +1,28 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Intégration déjà configurée"
+        },
+        "error": {
+            "cannot_connect": "Impossible de se connecter",
+            "invalid_auth": "Erreur d'authentification",
+            "unknown": "Une erreur est survenue"
+        },
+        "step": {
+            "parent": {
+                "data": {
+                    "child": "Enfant"
+                }
+            },
+            "user": {
+                "data": {
+                    "account_type": "Type de compte",
+                    "ent": "ENT",
+                    "password": "Mot de passe",
+                    "url": "URL",
+                    "username": "Identifiant"
+                }
+            }
+        }
+    }
+}
