@@ -1,0 +1,13 @@
+{
+  "domain": "pronote",
+  "name": "Pronote",
+  "codeowners": [
+    "@delphiki"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/delphiki/hass-pronote",
+  "iot_class": "cloud_polling",
+  "requirements": [
+    "pronotepy==2.9.0"
+  ]
+}
