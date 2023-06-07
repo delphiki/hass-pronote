@@ -9,5 +9,6 @@
   "iot_class": "cloud_polling",
   "requirements": [
     "pronotepy==2.9.0"
-  ]
+  ],
+  "version": "0.1.2"
 }
