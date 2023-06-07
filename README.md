@@ -4,6 +4,7 @@
 
 ### Using HACS
 
+Add this repository to HACS, then:  
 HACS > Integrations > **Pronote**
 
 ### Manual install
