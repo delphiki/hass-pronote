@@ -204,7 +204,7 @@ class PronoteTimetableSensor(SensorEntity):
             if not (lesson.start == self._lessons[index - 1].start and lesson.canceled is True):
                 attributes.append(build_cours_data(lesson))
             if lesson.canceled is False and self._start_at is None:
-                self.state = lesson.start
+                self._start_at = lesson.start
 
         return {
             'updated_at': datetime.now(),
