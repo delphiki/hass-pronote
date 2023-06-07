@@ -21,7 +21,7 @@ Settings > Devices & Sevices > Integrations > Add Integration, and search for "P
 The follow the step of the config flow:  
 ![Pronote config flow](doc/config_flow.png)
 
-Note: if your using a Parent account, you'll be prompt to choose a child:  
+Note: if you're using a Parent account, you'll be prompt to choose a child:  
 ![Pronote config flow](doc/config_flow_parent.png)
 
 ## Usage
