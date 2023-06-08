@@ -19,7 +19,7 @@ Click on the following button:
 Or go to :  
 Settings > Devices & Sevices > Integrations > Add Integration, and search for "Pronote"
 
-The follow the step of the config flow:  
+Then follow the step of the config flow:  
 ![Pronote config flow](doc/config_flow.png)
 
 Note: if you're using a Parent account, you'll be prompt to choose a child:  
