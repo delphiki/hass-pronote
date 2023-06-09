@@ -38,3 +38,6 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 * `sensor.pronote_LASTNAME_FIRSTNAME_evaluations` a list of your child's evaluations
 
 The sensors above are updated every 15 minutes.
+
+## Cards
+==> [Examples](card.md)
