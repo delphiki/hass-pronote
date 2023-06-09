@@ -40,4 +40,4 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 The sensors above are updated every 15 minutes.
 
 ## Cards
-==> [Examples](card.md)
+==> [Examples](cards.md)
