@@ -1,5 +1,5 @@
 Example cards
-![image](https://github.com/vingerha/hass-pronote/assets/44190435/4e1b8da6-28bd-4aae-a50f-62cd6861e298)
+![image](https://github.com/vingerha/hass-pronote/assets/44190435/e23c94ec-ee17-4a2c-8061-51631c61221d)
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/b6b7f53f-6215-4997-95a3-5b690bf84a21)
 
 
@@ -364,7 +364,7 @@ Example cards
             <tr>    
             <td>{{ items[i].date.strftime("%d/%m") }}</td>
             <td>{{ items[i].subject }}</td>
-            <td>{{ items[i].grade }}/{{ items[i].grade_out_of }}</td>
+            <td>{{ items[i].grade_out_of }}</td>
             <td>{{ items[i].class_average }}</td>
             <td>{{ items[i].max }}</td>
             <td>{{ items[i].min }}</td>
