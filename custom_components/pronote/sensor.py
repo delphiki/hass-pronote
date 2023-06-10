@@ -12,7 +12,9 @@ from datetime import date, timedelta, datetime
 from .const import (
     DOMAIN,
     GRADES_TO_DISPLAY,
-    HOMEWORK_DESC_MAX_LENGTH
+    HOMEWORK_DESC_MAX_LENGTH,
+    LESSON_MAX_DAYS,
+    HOMEWORK_MAX_DAYS
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,14 +45,32 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
 
 
 def get_grades(client):
-    grades = client.current_period.grades
-    return sorted(grades, key=lambda grade: grade.date, reverse=True)
-
+    try:
+        grades = client.current_period.grades
+    except:
+        grades = []
+    return sorted(grades, key=lambda grade: grade.date, reverse=True)        
 
 def get_absences(client):
-    absences = client.current_period.absences
-    return sorted(absences, key=lambda absence: absence.from_date, reverse=True)
-
+    try:
+        absences = client.current_period.absences
+    except:
+        absences = []
+    return sorted(absences, key=lambda absence: absence.from_date, reverse=True)    
+    
+def get_averages(client):
+    try:
+        averages = client.current_period.averages
+    except:
+        averages = []
+    return averages     
+    
+def get_punishments(client):
+    try:
+        punishments = client.current_period.punishments    
+    except:
+        punishments = []
+    return sorted(punishments, key=lambda punishment: punishment.given, reverse=True)             
 
 def get_evaluations(client):
     try:
@@ -86,8 +106,10 @@ async def async_setup_entry(
     lessons_today = sorted(lessons_today, key=lambda lesson: lesson.start)
 
     lessons_tomorrow = await hass.async_add_executor_job(client.lessons, date.today() + timedelta(days=1))
-    lessons_tomorrow = sorted(
-        lessons_tomorrow, key=lambda lesson: lesson.start)
+    lessons_tomorrow = sorted(lessons_tomorrow, key=lambda lesson: lesson.start)
+    
+    lessons_period = await hass.async_add_executor_job(client.lessons, date.today(), date.today() + timedelta(days=LESSON_MAX_DAYS))
+    lessons_period = sorted(lessons_period, key=lambda lesson: lesson.start)
 
     delta = 1
     while True:
@@ -96,25 +118,35 @@ async def async_setup_entry(
             break
         delta = delta + 1
     lessons_nextday = sorted(lessons_nextday, key=lambda lesson: lesson.start)
-
-    grades = await hass.async_add_executor_job(get_grades, client)
+    
+    grades = await hass.async_add_executor_job(get_grades, client)    
+    averages = await hass.async_add_executor_job(get_averages, client)
 
     homeworks = await hass.async_add_executor_job(client.homework, date.today())
     homeworks = sorted(homeworks, key=lambda lesson: lesson.date)
 
+    homework_period = await hass.async_add_executor_job(client.homework, date.today(), date.today() + timedelta(days=HOMEWORK_MAX_DAYS))
+    homework_period = sorted(homework_period, key=lambda homework: homework.date)
+
     absences = await hass.async_add_executor_job(get_absences, client)
 
     evaluations = await hass.async_add_executor_job(get_evaluations, client)
+
+    punishments = await hass.async_add_executor_job(get_punishments, client)
 
     sensors = [
         PronoteChildSensor(sensor_prefix, child_info, data['account_type']),
         PronoteTimetableSensor(sensor_prefix, 'today', lessons_today),
         PronoteTimetableSensor(sensor_prefix, 'tomorrow', lessons_tomorrow),
         PronoteTimetableSensor(sensor_prefix, 'next_day', lessons_nextday),
+        PronoteTimetableSensor(sensor_prefix, 'period', lessons_period),
         PronoteGradesSensor(sensor_prefix, grades),
-        PronoteHomeworksSensor(sensor_prefix, homeworks),
+        PronoteHomeworksSensor(sensor_prefix, '', homeworks),
+        PronoteHomeworksSensor(sensor_prefix, '_period', homework_period),
         PronoteAbsensesSensor(sensor_prefix, absences),
         PronoteEvaluationsSensor(sensor_prefix, evaluations),
+        PronoteAveragesSensor(sensor_prefix, averages),
+        PronotePunishmentsSensor(sensor_prefix, punishments),
     ]
     async_add_entities(sensors, True)
 
@@ -161,10 +193,12 @@ def cours_affiche_from_lesson(lesson_data):
 def build_cours_data(lesson_data):
     return {
         'id': lesson_data.id,
-        'start_at': lesson_data.start.strftime("%d/%m/%Y, %H:%M"),
-        'date': lesson_data.start.strftime("%d/%m/%Y"),
-        'time': lesson_data.start.strftime("%H:%M"),
-        'end_at': lesson_data.end.strftime("%H:%M"),
+        'start_at': lesson_data.start,
+        'end_at': lesson_data.end,    
+        'start_time': lesson_data.start.strftime("%H:%M"),
+        'end_time': lesson_data.end.strftime("%H:%M"),        
+        'formatted_start_at': lesson_data.start.strftime("%d/%m/%Y, %H:%M"),
+        'formatted_date': lesson_data.start.strftime("%d/%m/%Y"),
         'lesson': cours_affiche_from_lesson(lesson_data),
         'classroom': lesson_data.classroom,
         'canceled': lesson_data.canceled,
@@ -209,8 +243,8 @@ class PronoteTimetableSensor(SensorEntity):
         return {
             'updated_at': datetime.now(),
             'lessons': attributes
-        }
-
+        }    
+              
 
 class PronoteGradesSensor(SensorEntity):
     """Representation of a Pronote sensor."""
@@ -260,15 +294,16 @@ class PronoteGradesSensor(SensorEntity):
 class PronoteHomeworksSensor(SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, homeworks) -> None:
+    def __init__(self, prefix: str, suffix: str, homeworks) -> None:
         """Initialize the Pronote sensor."""
         self._prefix = prefix
+        self._suffix = suffix
         self._homeworks = homeworks
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_homeworks"
+        return f"{DOMAIN}_{self._prefix}_homework{self._suffix}"
 
     @property
     def native_value(self):
@@ -381,3 +416,79 @@ class PronoteEvaluationsSensor(SensorEntity):
             'updated_at': datetime.now(),
             'evaluations': attributes
         }
+
+class PronoteAveragesSensor(SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, prefix: str, averages) -> None:
+        """Initialize the Pronote sensor."""
+        self._prefix = prefix
+        self._averages = averages
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self._prefix}_averages"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return len(self._averages)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        for average in self._averages:
+            attributes.append({
+                'average': average.student,
+                'class': average.class_average,
+                'max': average.max,
+                'min': average.min,
+                'out_of': average.out_of,
+                'subject': average.subject.name,
+            })
+        return {
+            'updated_at': datetime.now(),
+            'averages': attributes
+        }
+        
+class PronotePunishmentsSensor(SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, prefix: str, punishments) -> None:
+        """Initialize the Pronote sensor."""
+        self._prefix = prefix
+        self._punishments = punishments
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self._prefix}_punishments"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return len(self._punishments)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        for punishment in self._punishments:
+            attributes.append({
+                'id': punishment.id,
+                'date': punishment.given,
+                'subject': punishment.during_lesson,
+                'reasons': punishment.reasons,
+                'circumstances': punishment.circumstances,
+                'nature': punishment.nature,
+                'duration': str(punishment.duration),
+                'homework': punishment.homework,
+                'exclusion': punishment.exclusion, 
+            })
+        return {
+            'updated_at': datetime.now(),
+            'punishments': attributes
+        }
+        
