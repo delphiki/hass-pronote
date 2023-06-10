@@ -1,5 +1,7 @@
 Example cards
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/4e1b8da6-28bd-4aae-a50f-62cd6861e298)
+![image](https://github.com/vingerha/hass-pronote/assets/44190435/b6b7f53f-6215-4997-95a3-5b690bf84a21)
+
 
 ```
       - type: markdown
