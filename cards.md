@@ -841,7 +841,7 @@ Example cards
 
           {% endif %}
 
-          {% if items[i].formatted_date > items[i-1].formatted_date %} 
+          {% if items[i].start_at.strftime("%F") > items[i-1].start_at.strftime("%F") %} 
 
           <tr><td colspan=4><p><b>{{ items[i].start_at.strftime("%A %d") 
           }}</p></td></tr>
