@@ -36,9 +36,9 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
     try:
         client = (pronotepy.ParentClient if data['account_type'] ==
                   'parent' else pronotepy.Client)(url, data['username'], data['password'], ent)
-        _LOGGER.info(client.info.name)
+        _LOGGER.info(f"Client name: {client.info.name}")
     except Exception as err:
-        _LOGGER.critical(err)
+        _LOGGER.debug(err)
         return None
 
     return client
@@ -47,35 +47,40 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
 def get_grades(client):
     try:
         grades = client.current_period.grades
-    except:
+    except Exception as err:
+        _LOGGER.debug(err)
         grades = []
     return sorted(grades, key=lambda grade: grade.date, reverse=True)        
 
 def get_absences(client):
     try:
         absences = client.current_period.absences
-    except:
+    except Exception as err:
+        _LOGGER.debug(err)
         absences = []
     return sorted(absences, key=lambda absence: absence.from_date, reverse=True)    
     
 def get_averages(client):
     try:
         averages = client.current_period.averages
-    except:
+    except Exception as err:
+        _LOGGER.debug(err)
         averages = []
     return averages     
     
 def get_punishments(client):
     try:
         punishments = client.current_period.punishments    
-    except:
+    except Exception as err:
+        _LOGGER.debug(err)
         punishments = []
     return sorted(punishments, key=lambda punishment: punishment.given, reverse=True)             
 
 def get_evaluations(client):
     try:
         evaluations = client.current_period.evaluations
-    except:
+    except Exception as err:
+        _LOGGER.debug(err)
         evaluations = []
     evaluations = sorted(evaluations, key=lambda evaluation: (evaluation.name))
     return sorted(evaluations, key=lambda evaluation: (evaluation.date), reverse=True)
@@ -197,8 +202,8 @@ def build_cours_data(lesson_data):
         'end_at': lesson_data.end,    
         'start_time': lesson_data.start.strftime("%H:%M"),
         'end_time': lesson_data.end.strftime("%H:%M"),        
-        'formatted_start_at': lesson_data.start.strftime("%d/%m/%Y, %H:%M"),
-        'formatted_date': lesson_data.start.strftime("%d/%m/%Y"),
+                                                                            
+                                                                 
         'lesson': cours_affiche_from_lesson(lesson_data),
         'classroom': lesson_data.classroom,
         'canceled': lesson_data.canceled,
@@ -216,8 +221,8 @@ class PronoteTimetableSensor(SensorEntity):
         self._suffix = suffix
         self._lessons = lessons
         self._start_at = None
-        _LOGGER.info('PronoteTimetableSensor')
-        _LOGGER.info(lessons)
+        _LOGGER.debug(f"PronoteTimetableSensor: {lessons}")
+                             
 
     @property
     def name(self):
@@ -356,7 +361,7 @@ class PronoteAbsensesSensor(SensorEntity):
             attributes.append({
                 'id': absence.id,
                 'from': absence.from_date,
-                'formatted_from': absence.from_date.strftime("Le %d %b à %H:%M"),
+                                                                                  
                 'to': absence.to_date,
                 'justified': absence.justified,
                 'hours': absence.hours,
