@@ -230,7 +230,7 @@ class PronoteTimetableSensor(SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return self._start_at
+        return len(self._lessons)
 
     @property
     def extra_state_attributes(self):
