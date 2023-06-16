@@ -14,7 +14,8 @@ from .const import (
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
     LESSON_MAX_DAYS,
-    HOMEWORK_MAX_DAYS
+    HOMEWORK_MAX_DAYS,
+    EVALUATIONS_TO_DISPLAY
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,8 +203,6 @@ def build_cours_data(lesson_data):
         'end_at': lesson_data.end,    
         'start_time': lesson_data.start.strftime("%H:%M"),
         'end_time': lesson_data.end.strftime("%H:%M"),        
-                                                                            
-                                                                 
         'lesson': cours_affiche_from_lesson(lesson_data),
         'classroom': lesson_data.classroom,
         'canceled': lesson_data.canceled,
@@ -222,7 +221,6 @@ class PronoteTimetableSensor(SensorEntity):
         self._lessons = lessons
         self._start_at = None
         _LOGGER.debug(f"PronoteTimetableSensor: {lessons}")
-                             
 
     @property
     def name(self):
@@ -361,7 +359,6 @@ class PronoteAbsensesSensor(SensorEntity):
             attributes.append({
                 'id': absence.id,
                 'from': absence.from_date,
-                                                                                  
                 'to': absence.to_date,
                 'justified': absence.justified,
                 'hours': absence.hours,
@@ -397,7 +394,11 @@ class PronoteEvaluationsSensor(SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
+        index_note = 0
         for evaluation in self._evaluations:
+            index_note += 1
+            if index_note == EVALUATIONS_TO_DISPLAY:
+                break
             attributes.append({
                 'date': evaluation.date,
                 'subject': evaluation.subject.name,
