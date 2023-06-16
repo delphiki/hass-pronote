@@ -578,7 +578,8 @@ Example cards
 
           {% for i in range(0, items | count, 1) %}
 
-          <tr><td>{{ items[i].subject }}</td>
+          <tr><td colspan="3"><b>{{ items[i].date.strftime("%d-%m") }} {{
+          items[i].subject }}</td>
 
           {% set acquisitions = items[i].acquisitions %}
 
