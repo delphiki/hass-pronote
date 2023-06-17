@@ -75,7 +75,7 @@ def get_punishments(client):
     except Exception as err:
         _LOGGER.debug(err)
         punishments = []
-    return sorted(punishments, key=lambda punishment: punishment.given, reverse=True)             
+    return sorted(punishments, key=lambda punishment: punishment.given.strftime("%Y-%m-%d"), reverse=True)             
 
 def get_evaluations(client):
     try:
@@ -484,7 +484,7 @@ class PronotePunishmentsSensor(SensorEntity):
         for punishment in self._punishments:
             attributes.append({
                 'id': punishment.id,
-                'date': punishment.given,
+                'date': punishment.given.strftime("%Y-%m-%d"),
                 'subject': punishment.during_lesson,
                 'reasons': punishment.reasons,
                 'circumstances': punishment.circumstances,
