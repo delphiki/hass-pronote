@@ -113,9 +113,21 @@ async def async_setup_entry(
 
     lessons_tomorrow = await hass.async_add_executor_job(client.lessons, date.today() + timedelta(days=1))
     lessons_tomorrow = sorted(lessons_tomorrow, key=lambda lesson: lesson.start)
-    
-    lessons_period = await hass.async_add_executor_job(client.lessons, date.today(), date.today() + timedelta(days=LESSON_MAX_DAYS))
+
+   
+    delta = LESSON_MAX_DAYS
+    while True:
+        try:
+            lessons_period = await hass.async_add_executor_job(client.lessons, date.today(), date.today() + timedelta(days=delta))
+        except:
+            _LOGGER.debug(f"No lessons at: {delta} from today, searching best earlier alternative")
+            lessons_period = []
+        if lessons_period:
+            break
+        delta = delta - 1
+    _LOGGER.debug(f"Lessons found at: {delta} days, for a maximum of {LESSON_MAX_DAYS} from today")
     lessons_period = sorted(lessons_period, key=lambda lesson: lesson.start)
+    
 
     delta = 1
     while True:
