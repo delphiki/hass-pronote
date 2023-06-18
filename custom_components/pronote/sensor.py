@@ -17,7 +17,6 @@ from .const import (
     HOMEWORK_MAX_DAYS,
     EVALUATIONS_TO_DISPLAY
 )
-
 _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(minutes=15)
