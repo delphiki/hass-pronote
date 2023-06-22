@@ -42,3 +42,6 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 * `sensor.pronote_LASTNAME_FIRSTNAME_punishments` a list of your child's punishments
 
 The sensors above are updated every 15 minutes.
+
+## Cards
+==> [Examples](cards.md)
