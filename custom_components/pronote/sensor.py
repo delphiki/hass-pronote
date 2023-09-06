@@ -92,6 +92,10 @@ async def async_setup_entry(
     data = entry.data
 
     client = await hass.async_add_executor_job(get_pronote_client, data)
+
+    if client is None:
+        return None
+
     child_info = client.info
 
     if (data['account_type'] == 'parent'):
@@ -103,7 +107,7 @@ async def async_setup_entry(
         child_info = candidates[0] if candidates else None
 
     if child_info is None:
-        return False
+        return None
 
     sensor_prefix = re.sub("[^A-Za-z]", "_", child_info.name.lower())
 
