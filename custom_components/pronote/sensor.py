@@ -43,8 +43,8 @@ async def async_setup_entry(
 
         PronoteGradesSensor(coordinator),
 
-        PronoteHomeworksSensor(coordinator, ''),
-        PronoteHomeworksSensor(coordinator, '_period'),
+        PronoteHomeworkSensor(coordinator, ''),
+        PronoteHomeworkSensor(coordinator, '_period'),
 
         PronoteAbsensesSensor(coordinator),
         PronoteEvaluationsSensor(coordinator),
@@ -209,7 +209,7 @@ class PronoteGradesSensor(CoordinatorEntity, SensorEntity):
         }
 
 
-class PronoteHomeworksSensor(CoordinatorEntity, SensorEntity):
+class PronoteHomeworkSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
     def __init__(self, coordinator, suffix: str) -> None:
