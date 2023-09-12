@@ -4,187 +4,83 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from homeassistant.components.sensor import SensorEntity
 
-import logging
-import pronotepy
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+)
+
 import re
-from datetime import date, timedelta, datetime
+
+from datetime import datetime
+
+from .coordinator import PronoteDataUpdateCoordinator
 
 from .const import (
     DOMAIN,
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
-    LESSON_MAX_DAYS,
-    HOMEWORK_MAX_DAYS,
     EVALUATIONS_TO_DISPLAY
 )
-_LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(minutes=15)
-
-
-def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
-    url = data['url'] + ('parent' if data['account_type'] ==
-                         'parent' else 'eleve') + '.html'
-
-    ent = None
-    if 'ent' in data:
-        ent = getattr(pronotepy.ent, data['ent'])
-
-    if not ent:
-        url += '?login=true'
-
-    try:
-        client = (pronotepy.ParentClient if data['account_type'] ==
-                  'parent' else pronotepy.Client)(url, data['username'], data['password'], ent)
-        _LOGGER.info(f"Client name: {client.info.name}")
-    except Exception as err:
-        _LOGGER.debug(err)
-        return None
-
-    return client
-
-
-def get_grades(client):
-    try:
-        grades = client.current_period.grades
-    except Exception as err:
-        _LOGGER.debug(err)
-        grades = []
-    return sorted(grades, key=lambda grade: grade.date, reverse=True)        
-
-def get_absences(client):
-    try:
-        absences = client.current_period.absences
-    except Exception as err:
-        _LOGGER.debug(err)
-        absences = []
-    return sorted(absences, key=lambda absence: absence.from_date, reverse=True)    
-    
-def get_averages(client):
-    try:
-        averages = client.current_period.averages
-    except Exception as err:
-        _LOGGER.debug(err)
-        averages = []
-    return averages     
-    
-def get_punishments(client):
-    try:
-        punishments = client.current_period.punishments    
-    except Exception as err:
-        _LOGGER.debug(err)
-        punishments = []
-    return sorted(punishments, key=lambda punishment: punishment.given.strftime("%Y-%m-%d"), reverse=True)             
-
-def get_evaluations(client):
-    try:
-        evaluations = client.current_period.evaluations
-    except Exception as err:
-        _LOGGER.debug(err)
-        evaluations = []
-    evaluations = sorted(evaluations, key=lambda evaluation: (evaluation.name))
-    return sorted(evaluations, key=lambda evaluation: (evaluation.date), reverse=True)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback
 ) -> None:
-    data = entry.data
+    coordinator: PronoteDataUpdateCoordinator = hass.data[DOMAIN][
+        config_entry.entry_id
+    ]["coordinator"]
 
-    client = await hass.async_add_executor_job(get_pronote_client, data)
-
-    if client is None:
-        return None
-
-    child_info = client.info
-
-    if (data['account_type'] == 'parent'):
-        client.set_child(data['child'])
-        candidates = pronotepy.dataClasses.Util.get(
-            client.children,
-            name=data['child']
-        )
-        child_info = candidates[0] if candidates else None
-
-    if child_info is None:
-        return None
-
-    sensor_prefix = re.sub("[^A-Za-z]", "_", child_info.name.lower())
-
-    lessons_today = await hass.async_add_executor_job(client.lessons, date.today())
-    lessons_today = sorted(lessons_today, key=lambda lesson: lesson.start)
-
-    lessons_tomorrow = await hass.async_add_executor_job(client.lessons, date.today() + timedelta(days=1))
-    lessons_tomorrow = sorted(lessons_tomorrow, key=lambda lesson: lesson.start)
-
-   
-    delta = LESSON_MAX_DAYS
-    while True:
-        try:
-            lessons_period = await hass.async_add_executor_job(client.lessons, date.today(), date.today() + timedelta(days=delta))
-        except:
-            _LOGGER.debug(f"No lessons at: {delta} from today, searching best earlier alternative")
-            lessons_period = []
-        if lessons_period:
-            break
-        delta = delta - 1
-    _LOGGER.debug(f"Lessons found at: {delta} days, for a maximum of {LESSON_MAX_DAYS} from today")
-    lessons_period = sorted(lessons_period, key=lambda lesson: lesson.start)
-    
-
-    delta = 1
-    while True:
-        lessons_nextday = await hass.async_add_executor_job(client.lessons, date.today() + timedelta(days=delta))
-        if lessons_nextday:
-            break
-        delta = delta + 1
-    lessons_nextday = sorted(lessons_nextday, key=lambda lesson: lesson.start)
-    
-    grades = await hass.async_add_executor_job(get_grades, client)    
-    averages = await hass.async_add_executor_job(get_averages, client)
-
-    homeworks = await hass.async_add_executor_job(client.homework, date.today())
-    homeworks = sorted(homeworks, key=lambda lesson: lesson.date)
-
-    homework_period = await hass.async_add_executor_job(client.homework, date.today(), date.today() + timedelta(days=HOMEWORK_MAX_DAYS))
-    homework_period = sorted(homework_period, key=lambda homework: homework.date)
-
-    absences = await hass.async_add_executor_job(get_absences, client)
-
-    evaluations = await hass.async_add_executor_job(get_evaluations, client)
-
-    punishments = await hass.async_add_executor_job(get_punishments, client)
+    await coordinator.async_config_entry_first_refresh()
 
     sensors = [
-        PronoteChildSensor(sensor_prefix, child_info, data['account_type']),
-        PronoteTimetableSensor(sensor_prefix, 'today', lessons_today),
-        PronoteTimetableSensor(sensor_prefix, 'tomorrow', lessons_tomorrow),
-        PronoteTimetableSensor(sensor_prefix, 'next_day', lessons_nextday),
-        PronoteTimetableSensor(sensor_prefix, 'period', lessons_period),
-        PronoteGradesSensor(sensor_prefix, grades),
-        PronoteHomeworksSensor(sensor_prefix, '', homeworks),
-        PronoteHomeworksSensor(sensor_prefix, '_period', homework_period),
-        PronoteAbsensesSensor(sensor_prefix, absences),
-        PronoteEvaluationsSensor(sensor_prefix, evaluations),
-        PronoteAveragesSensor(sensor_prefix, averages),
-        PronotePunishmentsSensor(sensor_prefix, punishments),
+        PronoteChildSensor(coordinator),
+
+        PronoteTimetableSensor(coordinator, 'today'),
+        PronoteTimetableSensor(coordinator, 'tomorrow'),
+        PronoteTimetableSensor(coordinator, 'next_day'),
+        PronoteTimetableSensor(coordinator, 'period'),
+
+        PronoteGradesSensor(coordinator),
+
+        PronoteHomeworksSensor(coordinator, ''),
+        PronoteHomeworksSensor(coordinator, '_period'),
+
+        PronoteAbsensesSensor(coordinator),
+        PronoteEvaluationsSensor(coordinator),
+        PronoteAveragesSensor(coordinator),
+        PronotePunishmentsSensor(coordinator),
     ]
-    async_add_entities(sensors, True)
+
+    async_add_entities(sensors, False)
 
 
-class PronoteChildSensor(SensorEntity):
+class PronoteBaseSensor(
+    CoordinatorEntity[PronoteDataUpdateCoordinator], SensorEntity
+):
+    """Representation of an Pronote sensor."""
+
+    def __init__(
+        self,
+        coordinator: PronoteDataUpdateCoordinator,
+    ) -> None:
+        """Initialize a new OctoPrint sensor."""
+        super().__init__(coordinator)
+
+
+class PronoteChildSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, child_info: dict, account_type: str) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
-        self._child_info = child_info
-        self._account_type = account_type
+        super().__init__(coordinator)
+        self._child_info = coordinator.data['child_info']
+        self._account_type = coordinator.data['account_type']
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}"
 
     @property
     def native_value(self):
@@ -215,9 +111,9 @@ def build_cours_data(lesson_data):
     return {
         'id': lesson_data.id,
         'start_at': lesson_data.start,
-        'end_at': lesson_data.end,    
+        'end_at': lesson_data.end,
         'start_time': lesson_data.start.strftime("%H:%M"),
-        'end_time': lesson_data.end.strftime("%H:%M"),        
+        'end_time': lesson_data.end.strftime("%H:%M"),
         'lesson': cours_affiche_from_lesson(lesson_data),
         'classroom': lesson_data.classroom,
         'canceled': lesson_data.canceled,
@@ -226,30 +122,29 @@ def build_cours_data(lesson_data):
     }
 
 
-class PronoteTimetableSensor(SensorEntity):
+class PronoteTimetableSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, suffix: str, lessons) -> None:
+    def __init__(self, coordinator: PronoteDataUpdateCoordinator, suffix: str) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
+        super().__init__(coordinator)
         self._suffix = suffix
-        self._lessons = lessons
         self._start_at = None
-        _LOGGER.debug(f"PronoteTimetableSensor: {lessons}")
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_timetable_{self._suffix}"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_timetable_{self._suffix}"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._lessons)
+        return len(self.coordinator.data['lessons_'+self._suffix])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
+        self._lessons = self.coordinator.data['lessons_'+self._suffix]
         attributes = []
         for lesson in self._lessons:
             index = self._lessons.index(lesson)
@@ -260,34 +155,39 @@ class PronoteTimetableSensor(SensorEntity):
 
         return {
             'updated_at': datetime.now(),
-            'lessons': attributes
-        }    
-              
+            'lessons': attributes,
+            'day_start_at': self._start_at
+        }
 
-class PronoteGradesSensor(SensorEntity):
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success and self.coordinator.data["lessons_" + self._suffix]
+
+
+class PronoteGradesSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, grades) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
-        self._grades = grades
+        super().__init__(coordinator)
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_grades"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_grades"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._grades)
+        return len(self.coordinator.data['grades'])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
         index_note = 0
-        for grade in self._grades:
+        for grade in self.coordinator.data['grades']:
             index_note += 1
             if index_note == GRADES_TO_DISPLAY:
                 break
@@ -309,32 +209,31 @@ class PronoteGradesSensor(SensorEntity):
         }
 
 
-class PronoteHomeworksSensor(SensorEntity):
+class PronoteHomeworksSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, suffix: str, homeworks) -> None:
+    def __init__(self, coordinator, suffix: str) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
+        super().__init__(coordinator)
         self._suffix = suffix
-        self._homeworks = homeworks
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_homework{self._suffix}"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_homework{self._suffix}"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._homeworks)
+        return len(self.coordinator.data[f"homework{self._suffix}"])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for homework in self._homeworks:
+        for homework in self.coordinator.data[f"homework{self._suffix}"]:
             attributes.append({
-                'index': self._homeworks.index(homework),
+                'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
                 'date': homework.date,
                 'subject': homework.subject.name,
                 'short_description': (homework.description)[0:HOMEWORK_DESC_MAX_LENGTH],
@@ -348,29 +247,28 @@ class PronoteHomeworksSensor(SensorEntity):
         }
 
 
-class PronoteAbsensesSensor(SensorEntity):
+class PronoteAbsensesSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, absences) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
-        self._absences = absences
+        super().__init__(coordinator)
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_absences"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_absences"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._absences)
+        return len(self.coordinator.data['absences'])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for absence in self._absences:
+        for absence in self.coordinator.data['absences']:
             attributes.append({
                 'id': absence.id,
                 'from': absence.from_date,
@@ -387,30 +285,29 @@ class PronoteAbsensesSensor(SensorEntity):
         }
 
 
-class PronoteEvaluationsSensor(SensorEntity):
+class PronoteEvaluationsSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, evaluations) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
-        self._evaluations = evaluations
+        super().__init__(coordinator)
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_evaluations"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_evaluations"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._evaluations)
+        return len(self.coordinator.data['evaluations'])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
         index_note = 0
-        for evaluation in self._evaluations:
+        for evaluation in self.coordinator.data['evaluations']:
             index_note += 1
             if index_note == EVALUATIONS_TO_DISPLAY:
                 break
@@ -438,29 +335,29 @@ class PronoteEvaluationsSensor(SensorEntity):
             'evaluations': attributes
         }
 
-class PronoteAveragesSensor(SensorEntity):
+
+class PronoteAveragesSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, averages) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
-        self._averages = averages
+        super().__init__(coordinator)
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_averages"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_averages"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._averages)
+        return len(self.coordinator.data['averages'])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for average in self._averages:
+        for average in self.coordinator.data['averages']:
             attributes.append({
                 'average': average.student,
                 'class': average.class_average,
@@ -473,30 +370,30 @@ class PronoteAveragesSensor(SensorEntity):
             'updated_at': datetime.now(),
             'averages': attributes
         }
-        
-class PronotePunishmentsSensor(SensorEntity):
+
+
+class PronotePunishmentsSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, prefix: str, punishments) -> None:
+    def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        self._prefix = prefix
-        self._punishments = punishments
+        super().__init__(coordinator)
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._prefix}_punishments"
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_punishments"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return len(self._punishments)
+        return len(self.coordinator.data['punishments'])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for punishment in self._punishments:
+        for punishment in self.coordinator.data['punishments']:
             attributes.append({
                 'id': punishment.id,
                 'date': punishment.given.strftime("%Y-%m-%d"),
@@ -506,10 +403,9 @@ class PronotePunishmentsSensor(SensorEntity):
                 'nature': punishment.nature,
                 'duration': str(punishment.duration),
                 'homework': punishment.homework,
-                'exclusion': punishment.exclusion, 
+                'exclusion': punishment.exclusion,
             })
         return {
             'updated_at': datetime.now(),
             'punishments': attributes
         }
-        
