@@ -103,7 +103,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             hass=hass,
             logger=_LOGGER,
             name=entry.title,
-            update_interval=timedelta(minutes=5),
+            update_interval=timedelta(minutes=15),
         )
         self.config_entry = entry
         self.data = {
