@@ -122,6 +122,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "absences": None,
             "evaluations": None,
             "punishments": None,
+            "menus": None,
         }
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
@@ -205,6 +206,8 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             self.data['evaluations'] = await self.hass.async_add_executor_job(get_evaluations, client)
 
             self.data['punishments'] = await self.hass.async_add_executor_job(get_punishments, client)
+
+            self.data['menus'] = await self.hass.async_add_executor_job(client.menus, date.today(), date.today() + timedelta(days=7))
 
         except Exception as ex:
             _LOGGER.error("Error getting data from pronote: %s", ex)

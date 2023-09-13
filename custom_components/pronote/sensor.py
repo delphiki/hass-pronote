@@ -52,6 +52,8 @@ async def async_setup_entry(
         PronotePunishmentsSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
+
+        PronoteMenusSensor(coordinator),
     ]
 
     async_add_entities(sensors, False)
@@ -444,4 +446,67 @@ class PronotePunishmentsSensor(CoordinatorEntity, SensorEntity):
         return {
             'updated_at': datetime.now(),
             'punishments': attributes
+        }
+
+
+def format_food_list(food_list):
+    formatted_food_list = []
+    if food_list is None:
+        return formatted_food_list
+
+    for food in food_list:
+        formatted_food_labels = []
+        for label in food.labels:
+            formatted_food_labels.append({
+                'id': label.id,
+                'name': label.name,
+                'color': label.color,
+            })
+        formatted_food_list.append({
+            'id': food.id,
+            'name': food.name,
+            'labels': formatted_food_labels,
+        })
+
+    return formatted_food_list
+
+
+class PronoteMenusSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator)
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_menus"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return len(self.coordinator.data['menus'])
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        for menu in self.coordinator.data['menus']:
+            attributes.append({
+                'id': menu.id,
+                'name': menu.name,
+                'date': menu.date.strftime("%Y-%m-%d"),
+                'is_lunch': menu.is_lunch,
+                'is_dinner': menu.is_dinner,
+                'first_meal': format_food_list(menu.first_meal),
+                'main_meal': format_food_list(menu.main_meal),
+                'side_meal': format_food_list(menu.side_meal),
+                'other_meal': format_food_list(menu.other_meal),
+                'cheese': format_food_list(menu.cheese),
+                'dessert': format_food_list(menu.dessert),
+            })
+        return {
+            'updated_at': datetime.now(),
+            'menus': attributes
         }
