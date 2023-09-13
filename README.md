@@ -4,7 +4,11 @@
 
 ### Using HACS
 
-Add this repository to HACS, then:  
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=delphiki&repository=hass-pronote&category=integration)
+
+OR
+
+If you can't find the integration, add this repository to HACS, then:  
 HACS > Integrations > **Pronote**
 
 ### Manual install
