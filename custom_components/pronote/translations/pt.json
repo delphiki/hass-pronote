@@ -1,0 +1,28 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Equipamento já configurado"
+        },
+        "error": {
+            "cannot_connect": "Falha na ligação",
+            "invalid_auth": "Falha na autenticação",
+            "unknown": "Erro inesperado"
+        },
+        "step": {
+            "parent": {
+                "data": {
+                    "child": "Filho"
+                }
+            },
+            "user": {
+                "data": {
+                    "account_type": "Tipo de Conta",
+                    "ent": "ENT",
+                    "password": "Senha",
+                    "url": "URL",
+                    "username": "Utilizador"
+                }
+            }
+        }
+    }
+}
