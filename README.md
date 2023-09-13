@@ -26,7 +26,7 @@ Settings > Devices & Sevices > Integrations > Add Integration, and search for "P
 Then follow the step of the config flow:  
 ![Pronote config flow](doc/config_flow.png)
 
-Note: if you're using a Parent account, you'll be prompt to choose a child:  
+Note: if you're using a Parent account, you'll be prompt to select a child:  
 ![Pronote config flow](doc/config_flow_parent.png)
 
 ## Usage
@@ -37,6 +37,7 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 * `sensor.pronote_LASTNAME_FIRSTNAME_timetable_tomorrow`: tomorrow's timetable
 * `sensor.pronote_LASTNAME_FIRSTNAME_timetable_next_day`: next school day timetable
 * `sensor.pronote_LASTNAME_FIRSTNAME_timetable_period`: next school day timetable for next 15 days
+* `sensor.pronote_LASTNAME_FIRSTNAME_timetable_ical_url`: iCal URL for the timetable
 * `sensor.pronote_LASTNAME_FIRSTNAME_grades`: a list of the latest grades
 * `sensor.pronote_LASTNAME_FIRSTNAME_homework`: a list of your child's homework
 * `sensor.pronote_LASTNAME_FIRSTNAME_homework_period`: a list of your child's homework for max 15 days
@@ -44,5 +45,6 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 * `sensor.pronote_LASTNAME_FIRSTNAME_evaluations` a list of your child's evaluations
 * `sensor.pronote_LASTNAME_FIRSTNAME_averages` a list of your child's averages
 * `sensor.pronote_LASTNAME_FIRSTNAME_punishments` a list of your child's punishments
+* `sensor.pronote_LASTNAME_FIRSTNAME_menus` a list of your child's menus
 
 The sensors above are updated every 15 minutes.
