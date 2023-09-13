@@ -50,6 +50,8 @@ async def async_setup_entry(
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
+
+        PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
     ]
 
     async_add_entities(sensors, False)
@@ -66,6 +68,33 @@ class PronoteBaseSensor(
     ) -> None:
         """Initialize a new OctoPrint sensor."""
         super().__init__(coordinator)
+
+
+class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator, coordinator_key: str, name: str) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator)
+        self._coordinator_key = coordinator_key
+        self._name = name
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_{self._name}"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return self.coordinator.data[self._coordinator_key]
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        return {
+            'updated_at': datetime.now()
+        }
 
 
 class PronoteChildSensor(CoordinatorEntity, SensorEntity):

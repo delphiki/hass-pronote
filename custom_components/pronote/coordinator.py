@@ -114,6 +114,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "lessons_tomorrow": None,
             "lessons_next_day": None,
             "lessons_period": None,
+            "ical_url": None,
             "grades": None,
             "averages": None,
             "homework": None,
@@ -185,6 +186,8 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
                 delta = delta + 1
             self.data['lessons_next_day'] = sorted(
                 lessons_nextday, key=lambda lesson: lesson.start)
+
+            self.data['ical_url'] = await self.hass.async_add_executor_job(client.export_ical)
 
             self.data['grades'] = await self.hass.async_add_executor_job(get_grades, client)
             self.data['averages'] = await self.hass.async_add_executor_job(get_averages, client)
