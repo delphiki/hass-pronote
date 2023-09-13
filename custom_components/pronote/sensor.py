@@ -146,17 +146,20 @@ class PronoteTimetableSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         self._lessons = self.coordinator.data['lessons_'+self._suffix]
         attributes = []
+        canceled_counter = 0
         for lesson in self._lessons:
             index = self._lessons.index(lesson)
             if not (lesson.start == self._lessons[index - 1].start and lesson.canceled is True):
                 attributes.append(build_cours_data(lesson))
             if lesson.canceled is False and self._start_at is None:
                 self._start_at = lesson.start
-
+            if lesson.canceled is True:
+                canceled_counter += 1
         return {
             'updated_at': datetime.now(),
             'lessons': attributes,
-            'day_start_at': self._start_at
+            'day_start_at': self._start_at,
+            'canceled_lessons_counter': canceled_counter
         }
 
     @property
