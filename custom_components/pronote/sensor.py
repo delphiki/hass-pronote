@@ -234,6 +234,7 @@ class PronoteHomeworkSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
+        todo_counter = 0
         for homework in self.coordinator.data[f"homework{self._suffix}"]:
             attributes.append({
                 'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
@@ -243,10 +244,13 @@ class PronoteHomeworkSensor(CoordinatorEntity, SensorEntity):
                 'description': (homework.description),
                 'done': homework.done,
             })
+            if homework.done is False:
+                todo_counter += 1
 
         return {
             'updated_at': datetime.now(),
-            'homeworks': attributes
+            'homework': attributes,
+            'todo_counter': todo_counter
         }
 
 
