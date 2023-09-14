@@ -48,3 +48,6 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 * `sensor.pronote_LASTNAME_FIRSTNAME_menus` a list of your child's menus
 
 The sensors above are updated every 15 minutes.
+
+## Cards
+==> [Examples](cards.md)
