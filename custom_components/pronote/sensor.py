@@ -51,7 +51,7 @@ async def async_setup_entry(
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
 
-        PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
+        # PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
 
         PronoteMenusSensor(coordinator),
     ]
