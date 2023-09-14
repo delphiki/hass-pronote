@@ -51,7 +51,7 @@ async def async_setup_entry(
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
 
-        # PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
+        PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
 
         PronoteMenusSensor(coordinator),
     ]
@@ -89,6 +89,8 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
+        if self.coordinator.data[self._coordinator_key] is None:
+            return 'unavailable'
         return self.coordinator.data[self._coordinator_key]
 
     @property
@@ -486,26 +488,29 @@ class PronoteMenusSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
+        if self.coordinator.data['menus'] is None:
+            return 'unavailable'
         return len(self.coordinator.data['menus'])
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for menu in self.coordinator.data['menus']:
-            attributes.append({
-                'id': menu.id,
-                'name': menu.name,
-                'date': menu.date.strftime("%Y-%m-%d"),
-                'is_lunch': menu.is_lunch,
-                'is_dinner': menu.is_dinner,
-                'first_meal': format_food_list(menu.first_meal),
-                'main_meal': format_food_list(menu.main_meal),
-                'side_meal': format_food_list(menu.side_meal),
-                'other_meal': format_food_list(menu.other_meal),
-                'cheese': format_food_list(menu.cheese),
-                'dessert': format_food_list(menu.dessert),
-            })
+        if not self.coordinator.data['menus'] is None:
+            for menu in self.coordinator.data['menus']:
+                attributes.append({
+                    'id': menu.id,
+                    'name': menu.name,
+                    'date': menu.date.strftime("%Y-%m-%d"),
+                    'is_lunch': menu.is_lunch,
+                    'is_dinner': menu.is_dinner,
+                    'first_meal': format_food_list(menu.first_meal),
+                    'main_meal': format_food_list(menu.main_meal),
+                    'side_meal': format_food_list(menu.side_meal),
+                    'other_meal': format_food_list(menu.other_meal),
+                    'cheese': format_food_list(menu.cheese),
+                    'dessert': format_food_list(menu.dessert),
+                })
         return {
             'updated_at': datetime.now(),
             'menus': attributes
