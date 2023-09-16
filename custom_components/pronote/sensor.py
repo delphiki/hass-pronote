@@ -349,8 +349,8 @@ class PronoteDelaysSensor(CoordinatorEntity, SensorEntity):
         for delay in self.coordinator.data['delays']:
             attributes.append({
                 'id': delay.id,
-                'from': delay.date,
-                'minutes' delay.minutes,
+                'date': delay.date,
+                'minutes': delay.minutes,
                 'justified': delay.justified,
                 'justification': delay.justification,
                 'reasons': delay.reasons,

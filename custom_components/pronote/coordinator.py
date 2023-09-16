@@ -63,11 +63,11 @@ def get_absences(client):
     
 def get_delays(client):
     try:
-        absences = client.current_period.delays
+        delays = client.current_period.delays
     except Exception as err:
         _LOGGER.debug(err)
         delays = []
-    return sorted(delays, key=lambda delay: delay.from_date, reverse=True)    
+    return sorted(delays, key=lambda delay: delay.date, reverse=True)    
 
 
 def get_averages(client):
