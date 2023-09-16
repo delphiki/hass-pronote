@@ -353,7 +353,7 @@ class PronoteDelaysSensor(CoordinatorEntity, SensorEntity):
                 'minutes': delay.minutes,
                 'justified': delay.justified,
                 'justification': delay.justification,
-                'reasons': delay.reasons,
+                'reasons': str(delay.reasons)[2:-2],
             })
 
         return {
