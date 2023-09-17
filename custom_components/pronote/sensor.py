@@ -50,6 +50,7 @@ async def async_setup_entry(
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
+        PronoteDelaysSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
 
@@ -323,6 +324,42 @@ class PronoteAbsensesSensor(CoordinatorEntity, SensorEntity):
             'updated_at': datetime.now(),
             'absences': attributes
         }
+        
+class PronoteDelaysSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator)
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_delays"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return len(self.coordinator.data['delays'])
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        for delay in self.coordinator.data['delays']:
+            attributes.append({
+                'id': delay.id,
+                'date': delay.date,
+                'minutes': delay.minutes,
+                'justified': delay.justified,
+                'justification': delay.justification,
+                'reasons': str(delay.reasons)[2:-2],
+            })
+
+        return {
+            'updated_at': datetime.now(),
+            'delays': attributes
+        }        
 
 
 class PronoteEvaluationsSensor(CoordinatorEntity, SensorEntity):

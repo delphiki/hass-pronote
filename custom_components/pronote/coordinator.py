@@ -60,6 +60,14 @@ def get_absences(client):
         _LOGGER.debug(err)
         absences = []
     return sorted(absences, key=lambda absence: absence.from_date, reverse=True)
+    
+def get_delays(client):
+    try:
+        delays = client.current_period.delays
+    except Exception as err:
+        _LOGGER.debug(err)
+        delays = []
+    return sorted(delays, key=lambda delay: delay.date, reverse=True)    
 
 
 def get_averages(client):
@@ -120,6 +128,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "homework": None,
             "homework_period": None,
             "absences": None,
+            "delays": None,
             "evaluations": None,
             "punishments": None,
             "menus": None,
@@ -200,6 +209,8 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
                 homework_period, key=lambda homework: homework.date)
 
             self.data['absences'] = await self.hass.async_add_executor_job(get_absences, client)
+            
+            self.data['delays'] = await self.hass.async_add_executor_job(get_delays, client)
 
             self.data['evaluations'] = await self.hass.async_add_executor_job(get_evaluations, client)
 
