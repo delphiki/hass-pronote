@@ -49,6 +49,7 @@ async def async_setup_entry(
         PronoteAbsensesSensor(coordinator),
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
+        PronoteInformationsSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
 
@@ -412,6 +413,46 @@ class PronoteEvaluationsSensor(CoordinatorEntity, SensorEntity):
             'evaluations': attributes
         }
 
+
+class PronoteInformationsSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator)
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_informations"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return len(self.coordinator.data['informations'])
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = [] 
+        #Transformation des information
+        for information in self.coordinator.data['informations']:
+            attributes.append({
+                'author': information.author,            
+                'title': information.title,
+                'read': information.read,
+                'creation_date': information.creation_date.strftime("%Y/%m/%d"),
+                'start_date': information.start_date.strftime("%Y/%m/%d"),
+                'end_date': information.end_date.strftime("%Y/%m/%d"),
+                'category': information.category,
+                'survey': information.survey,
+                'content': information.content,
+                }) 
+
+        return {
+            'updated_at': datetime.now(),
+            'informations': attributes
+        }
 
 class PronoteAveragesSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""

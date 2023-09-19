@@ -96,6 +96,14 @@ def get_evaluations(client):
         evaluations = []
     evaluations = sorted(evaluations, key=lambda evaluation: (evaluation.name))
     return sorted(evaluations, key=lambda evaluation: (evaluation.date), reverse=True)
+    
+def get_informations(client):
+    try:
+        informations = client.information_and_surveys()
+    except Exception as err:
+        _LOGGER.debug(err)
+        informations = []
+    return sorted(informations, key=lambda information: (information.creation_date), reverse=True)    
 
 
 class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
@@ -213,6 +221,8 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             self.data['delays'] = await self.hass.async_add_executor_job(get_delays, client)
 
             self.data['evaluations'] = await self.hass.async_add_executor_job(get_evaluations, client)
+            
+            self.data['informations'] = await self.hass.async_add_executor_job(get_informations, client)
 
             self.data['punishments'] = await self.hass.async_add_executor_job(get_punishments, client)
 
