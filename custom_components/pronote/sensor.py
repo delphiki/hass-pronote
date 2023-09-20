@@ -629,6 +629,7 @@ class PronoteInformationAndSurveysSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
+        unread_count = 0
         for information_and_survey in self.coordinator.data['information_and_surveys']:
             attributes.append({
                 'id': information_and_survey.id,
@@ -646,8 +647,11 @@ class PronoteInformationAndSurveysSensor(CoordinatorEntity, SensorEntity):
                 'shared_template': information_and_survey.shared_template,
                 'content': information_and_survey.content,
             })
+            if information_and_survey.read is False:
+                unread_count += 1
 
         return {
             'updated_at': datetime.now(),
+            'unread_count': unread_count,
             'information_and_surveys': attributes
         }        
