@@ -511,6 +511,31 @@ class PronotePunishmentsSensor(CoordinatorEntity, SensorEntity):
                 'duration': str(punishment.duration),
                 'homework': punishment.homework,
                 'exclusion': punishment.exclusion,
+                'during_lesson': punishment.during_lesson,
+                'homework_documents': [
+                    {
+                        'name': attachment.name,
+                        'id': attachment.id,
+                        'url': attachment.url,
+                        'type': attachment.type,
+                    }
+                    for attachment in punishment.homework_documents],
+                'circumstance_documents': [
+                    {
+                        'name': attachment.name,
+                        'id': attachment.id,
+                        'url': attachment.url,
+                        'type': attachment.type,
+                    }
+                    for attachment in punishment.circumstance_documents],
+                'giver': punishment.giver,
+                'schedule': [                    {
+                        'id': schedule.id,
+                        'start': schedule.start,
+                        'duration': schedule.duration,
+                    }
+                    for schedule in punishment.schedule],
+                'schedulable': punishment.schedulable,
             })
         return {
             'updated_at': datetime.now(),
