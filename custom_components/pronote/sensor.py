@@ -51,6 +51,7 @@ async def async_setup_entry(
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
+        PronoteInformationAndSurveysSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
 
@@ -481,6 +482,16 @@ class PronoteAveragesSensor(CoordinatorEntity, SensorEntity):
         }
 
 
+def format_attachment_list(attachments):
+    return [
+        {
+            'name': attachment.name,
+            'id': attachment.id,
+            'url': attachment.url,
+            'type': attachment.type,
+        }
+        for attachment in attachments]
+
 class PronotePunishmentsSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
@@ -514,22 +525,8 @@ class PronotePunishmentsSensor(CoordinatorEntity, SensorEntity):
                 'homework': punishment.homework,
                 'exclusion': punishment.exclusion,
                 'during_lesson': punishment.during_lesson,
-                'homework_documents': [
-                    {
-                        'name': attachment.name,
-                        'id': attachment.id,
-                        'url': attachment.url,
-                        'type': attachment.type,
-                    }
-                    for attachment in punishment.homework_documents],
-                'circumstance_documents': [
-                    {
-                        'name': attachment.name,
-                        'id': attachment.id,
-                        'url': attachment.url,
-                        'type': attachment.type,
-                    }
-                    for attachment in punishment.circumstance_documents],
+                'homework_documents': format_attachment_list(punishment.homework_documents),
+                'circumstance_documents': format_attachment_list(punishment.circumstance_documents),
                 'giver': punishment.giver,
                 'schedule': [                    {
                         'id': schedule.id,
@@ -609,3 +606,47 @@ class PronoteMenusSensor(CoordinatorEntity, SensorEntity):
             'updated_at': datetime.now(),
             'menus': attributes
         }
+
+
+class PronoteInformationAndSurveysSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator)
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_information_and_surveys"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return len(self.coordinator.data['information_and_surveys'])
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        for information_and_survey in self.coordinator.data['information_and_surveys']:
+            attributes.append({
+                'id': information_and_survey.id,
+                'author': information_and_survey.author,
+                'title': information_and_survey.title,
+                'read': information_and_survey.read,
+                'creation_date': information_and_survey.creation_date,
+                'start_date': information_and_survey.start_date,
+                'end_date': information_and_survey.end_date,
+                'category': information_and_survey.category,
+                'survey': information_and_survey.survey,
+                'anonymous_response': information_and_survey.anonymous_response,
+                'attachments': format_attachment_list(information_and_survey.attachments),
+                'template': information_and_survey.template,
+                'shared_template': information_and_survey.shared_template,
+            })
+
+        return {
+            'updated_at': datetime.now(),
+            'information_and_surveys': attributes
+        }        
