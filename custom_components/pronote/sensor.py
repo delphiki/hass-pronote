@@ -469,7 +469,9 @@ class PronoteAveragesSensor(CoordinatorEntity, SensorEntity):
                 'max': average.max,
                 'min': average.min,
                 'out_of': average.out_of,
+                'default_out_of': average.default_out_of,
                 'subject': average.subject.name,
+                'background_color': average.background_color,
             })
         return {
             'updated_at': datetime.now(),
