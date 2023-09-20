@@ -289,12 +289,14 @@ class PronoteHomeworkSensor(CoordinatorEntity, SensorEntity):
         todo_counter = 0
         for homework in self.coordinator.data[f"homework{self._suffix}"]:
             attributes.append({
+                'id': homework.id,
                 'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
                 'date': homework.date,
                 'subject': homework.subject.name,
                 'short_description': (homework.description)[0:HOMEWORK_DESC_MAX_LENGTH],
                 'description': (homework.description),
                 'done': homework.done,
+                'background_color': homework.background_color,
             })
             if homework.done is False:
                 todo_counter += 1
