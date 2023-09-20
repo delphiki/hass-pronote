@@ -231,6 +231,7 @@ class PronoteGradesSensor(CoordinatorEntity, SensorEntity):
             attributes.append({
                 'date': grade.date,
                 'subject': grade.subject.name,
+                'comment': grade.comment,
                 'grade': grade.grade,
                 'out_of': float(re.sub(',', '.', grade.out_of)),
                 'grade_out_of': grade.grade + '/' + grade.out_of,
