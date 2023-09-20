@@ -644,6 +644,7 @@ class PronoteInformationAndSurveysSensor(CoordinatorEntity, SensorEntity):
                 'attachments': format_attachment_list(information_and_survey.attachments),
                 'template': information_and_survey.template,
                 'shared_template': information_and_survey.shared_template,
+                'content': information_and_survey.content,
             })
 
         return {
