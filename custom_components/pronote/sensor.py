@@ -152,6 +152,7 @@ def build_cours_data(lesson_data):
         'classroom': lesson_data.classroom,
         'canceled': lesson_data.canceled,
         'status': lesson_data.status,
+        'background_color': lesson_data.background_color,
         'teacher_name': lesson_data.teacher_name,
         'teacher_names': lesson_data.teacher_names,
         'classrooms': lesson_data.classrooms,
