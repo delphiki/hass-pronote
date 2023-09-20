@@ -407,6 +407,9 @@ class PronoteEvaluationsSensor(CoordinatorEntity, SensorEntity):
             if index_note == EVALUATIONS_TO_DISPLAY:
                 break
             attributes.append({
+                'id': evaluation.id,
+                'name': evaluation.name,
+                'domain': evaluation.domain,
                 'date': evaluation.date,
                 'subject': evaluation.subject.name,
                 'description': evaluation.description,
@@ -415,11 +418,18 @@ class PronoteEvaluationsSensor(CoordinatorEntity, SensorEntity):
                 'teacher': evaluation.teacher,
                 'acquisitions': [
                     {
+                        'id': acquisition.id,
                         'order': acquisition.order,
+                        'name_id': acquisition.name_id,
                         'name': acquisition.name,
                         'abbreviation': acquisition.abbreviation,
                         'level': acquisition.level,
+                        'domain_id': acquisition.domain_id,
                         'domain': acquisition.domain,
+                        'coefficient': acquisition.coefficient,
+                        'pillar_id': acquisition.pillar_id,
+                        'pillar': acquisition.pillar,
+                        'pillar_prefix': acquisition.pillar_prefix,
                     }
                     for acquisition in evaluation.acquisitions
                 ]
