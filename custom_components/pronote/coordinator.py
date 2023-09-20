@@ -212,7 +212,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
 
             information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys, datetime.today() - timedelta(days=INFORMATION_AND_SURVEYS_MAX_DAYS))
             self.data['information_and_surveys'] = sorted(
-                information_and_surveys, key=lambda information_and_survey: information_and_survey.creation_date)
+                information_and_surveys, key=lambda information_and_survey: information_and_survey.creation_date, reverse=True)
 
             self.data['absences'] = await self.hass.async_add_executor_job(get_absences, client)
             
