@@ -229,15 +229,21 @@ class PronoteGradesSensor(CoordinatorEntity, SensorEntity):
             if index_note == GRADES_TO_DISPLAY:
                 break
             attributes.append({
+                'id': grade.id,
                 'date': grade.date,
                 'subject': grade.subject.name,
+                'comment': grade.comment,
                 'grade': grade.grade,
                 'out_of': float(re.sub(',', '.', grade.out_of)),
+                'default_out_of': float(re.sub(',', '.', grade.default_out_of)),
                 'grade_out_of': grade.grade + '/' + grade.out_of,
                 'coefficient': float(re.sub(',', '.', grade.coefficient)),
                 'class_average': float(re.sub(',', '.', grade.average)),
                 'max': float(re.sub(',', '.', grade.max)),
                 'min': float(re.sub(',', '.', grade.min)),
+                'is_bonus': grade.is_bonus,
+                'is_optionnal': grade.is_optionnal,
+                'is_out_of_20': grade.is_out_of_20,
             })
 
         return {
