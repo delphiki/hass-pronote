@@ -46,7 +46,7 @@ This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are 
 * `sensor.pronote_LASTNAME_FIRSTNAME_averages` a list of your child's averages
 * `sensor.pronote_LASTNAME_FIRSTNAME_punishments` a list of your child's punishments
 * `sensor.pronote_LASTNAME_FIRSTNAME_delays` a list of your child's delays
-* `sensor.pronote_LASTNAME_FIRSTNAME_information_and_surveys` a list of your child's information_and_surveys for last 15 days
+* `sensor.pronote_LASTNAME_FIRSTNAME_information_and_surveys` a list of your child's information_and_surveys
 * `sensor.pronote_LASTNAME_FIRSTNAME_menus` a list of your child's menus
 
 The sensors above are updated every 15 minutes.

@@ -214,7 +214,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
                 "Error getting homework_period from pronote: %s", ex)
 
         try:
-            information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys, datetime.today() - timedelta(days=INFORMATION_AND_SURVEYS_MAX_DAYS))
+            information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys)
             self.data['information_and_surveys'] = sorted(
                 information_and_surveys, key=lambda information_and_survey: information_and_survey.creation_date, reverse=True)
         except Exception as ex:
