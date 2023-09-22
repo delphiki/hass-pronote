@@ -161,7 +161,6 @@ def cours_affiche_from_lesson(lesson_data):
 
 def build_cours_data(lesson_data):
     return {
-        'id': lesson_data.id,
         'start_at': lesson_data.start,
         'end_at': lesson_data.end,
         'start_time': lesson_data.start.strftime("%H:%M"),
@@ -234,7 +233,6 @@ class PronoteGradesSensor(PronoteGenericSensor):
             if index_note == GRADES_TO_DISPLAY:
                 break
             attributes.append({
-                'id': grade.id,
                 'date': grade.date,
                 'subject': grade.subject.name,
                 'comment': grade.comment,
@@ -272,7 +270,6 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
         todo_counter = 0
         for homework in self.coordinator.data[f"homework{self._suffix}"]:
             attributes.append({
-                'id': homework.id,
                 'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
                 'date': homework.date,
                 'subject': homework.subject.name,
@@ -304,7 +301,6 @@ class PronoteAbsensesSensor(PronoteGenericSensor):
         attributes = []
         for absence in self.coordinator.data['absences']:
             attributes.append({
-                'id': absence.id,
                 'from': absence.from_date,
                 'to': absence.to_date,
                 'justified': absence.justified,
@@ -332,7 +328,6 @@ class PronoteDelaysSensor(PronoteGenericSensor):
         attributes = []
         for delay in self.coordinator.data['delays']:
             attributes.append({
-                'id': delay.id,
                 'date': delay.date,
                 'minutes': delay.minutes,
                 'justified': delay.justified,
@@ -363,7 +358,6 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
             if index_note == EVALUATIONS_TO_DISPLAY:
                 break
             attributes.append({
-                'id': evaluation.id,
                 'name': evaluation.name,
                 'domain': evaluation.domain,
                 'date': evaluation.date,
@@ -374,7 +368,6 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
                 'teacher': evaluation.teacher,
                 'acquisitions': [
                     {
-                        'id': acquisition.id,
                         'order': acquisition.order,
                         'name_id': acquisition.name_id,
                         'name': acquisition.name,
@@ -429,7 +422,6 @@ def format_attachment_list(attachments):
     return [
         {
             'name': attachment.name,
-            'id': attachment.id,
             'url': attachment.url,
             'type': attachment.type,
         }
@@ -448,7 +440,6 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
         attributes = []
         for punishment in self.coordinator.data['punishments']:
             attributes.append({
-                'id': punishment.id,
                 'date': punishment.given.strftime("%Y-%m-%d"),
                 'subject': punishment.during_lesson,
                 'reasons': punishment.reasons,
@@ -462,7 +453,6 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
                 'circumstance_documents': format_attachment_list(punishment.circumstance_documents),
                 'giver': punishment.giver,
                 'schedule': [                    {
-                        'id': schedule.id,
                         'start': schedule.start,
                         'duration': schedule.duration,
                     }
@@ -484,12 +474,10 @@ def format_food_list(food_list):
         formatted_food_labels = []
         for label in food.labels:
             formatted_food_labels.append({
-                'id': label.id,
                 'name': label.name,
                 'color': label.color,
             })
         formatted_food_list.append({
-            'id': food.id,
             'name': food.name,
             'labels': formatted_food_labels,
         })
@@ -511,7 +499,6 @@ class PronoteMenusSensor(PronoteGenericSensor):
         if not self.coordinator.data['menus'] is None:
             for menu in self.coordinator.data['menus']:
                 attributes.append({
-                    'id': menu.id,
                     'name': menu.name,
                     'date': menu.date.strftime("%Y-%m-%d"),
                     'is_lunch': menu.is_lunch,
@@ -544,7 +531,6 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
         if not self.coordinator.data['information_and_surveys'] is None:
           for information_and_survey in self.coordinator.data['information_and_surveys']:
               attributes.append({
-                  'id': information_and_survey.id,
                   'author': information_and_survey.author,
                   'title': information_and_survey.title,
                   'read': information_and_survey.read,
