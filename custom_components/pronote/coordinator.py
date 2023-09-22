@@ -1,7 +1,7 @@
 """Data update coordinator for the Pronote integration."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import logging
@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import (
     LESSON_MAX_DAYS,
     HOMEWORK_MAX_DAYS,
+    INFORMATION_AND_SURVEYS_MAX_DAYS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -109,6 +110,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "evaluations": None,
             "punishments": None,
             "menus": None,
+            "information_and_surveys": None,
         }
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
@@ -210,6 +212,14 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as ex:
             _LOGGER.info(
                 "Error getting homework_period from pronote: %s", ex)
+
+        try:
+            information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys, datetime.today() - timedelta(days=INFORMATION_AND_SURVEYS_MAX_DAYS))
+            self.data['information_and_surveys'] = sorted(
+                information_and_surveys, key=lambda information_and_survey: information_and_survey.creation_date, reverse=True)
+        except Exception as ex:
+            _LOGGER.info(
+                "Error getting information_and_surveys from pronote: %s", ex)
 
         try:
             self.data['absences'] = await self.hass.async_add_executor_job(get_absences, client)

@@ -52,6 +52,7 @@ async def async_setup_entry(
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
+        PronoteInformationAndSurveysSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
 
@@ -170,6 +171,18 @@ def build_cours_data(lesson_data):
         'canceled': lesson_data.canceled,
         'status': lesson_data.status,
         'background_color': lesson_data.background_color,
+        'teacher_name': lesson_data.teacher_name,
+        'teacher_names': lesson_data.teacher_names,
+        'classrooms': lesson_data.classrooms,
+        'outing': lesson_data.outing,
+        'memo': lesson_data.memo,
+        'group_name': lesson_data.group_name,
+        'group_names': lesson_data.group_names,
+        'exempted': lesson_data.exempted,
+        'virtual_classrooms': lesson_data.virtual_classrooms,
+        'num': lesson_data.num,
+        'detention': lesson_data.detention,
+        'test': lesson_data.test,
     }
 
 
@@ -259,12 +272,14 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
         todo_counter = 0
         for homework in self.coordinator.data[f"homework{self._suffix}"]:
             attributes.append({
+                'id': homework.id,
                 'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
                 'date': homework.date,
                 'subject': homework.subject.name,
                 'short_description': (homework.description)[0:HOMEWORK_DESC_MAX_LENGTH],
                 'description': (homework.description),
                 'done': homework.done,
+                'background_color': homework.background_color,
             })
             if homework.done is False:
                 todo_counter += 1
@@ -348,6 +363,9 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
             if index_note == EVALUATIONS_TO_DISPLAY:
                 break
             attributes.append({
+                'id': evaluation.id,
+                'name': evaluation.name,
+                'domain': evaluation.domain,
                 'date': evaluation.date,
                 'subject': evaluation.subject.name,
                 'description': evaluation.description,
@@ -356,11 +374,18 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
                 'teacher': evaluation.teacher,
                 'acquisitions': [
                     {
+                        'id': acquisition.id,
                         'order': acquisition.order,
+                        'name_id': acquisition.name_id,
                         'name': acquisition.name,
                         'abbreviation': acquisition.abbreviation,
                         'level': acquisition.level,
+                        'domain_id': acquisition.domain_id,
                         'domain': acquisition.domain,
+                        'coefficient': acquisition.coefficient,
+                        'pillar_id': acquisition.pillar_id,
+                        'pillar': acquisition.pillar,
+                        'pillar_prefix': acquisition.pillar_prefix,
                     }
                     for acquisition in evaluation.acquisitions
                 ]
@@ -390,13 +415,25 @@ class PronoteAveragesSensor(PronoteGenericSensor):
                 'max': average.max,
                 'min': average.min,
                 'out_of': average.out_of,
+                'default_out_of': average.default_out_of,
                 'subject': average.subject.name,
+                'background_color': average.background_color,
             })
         return {
             'updated_at': datetime.now(),
             'averages': attributes
         }
 
+
+def format_attachment_list(attachments):
+    return [
+        {
+            'name': attachment.name,
+            'id': attachment.id,
+            'url': attachment.url,
+            'type': attachment.type,
+        }
+        for attachment in attachments]
 
 class PronotePunishmentsSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
@@ -420,6 +457,17 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
                 'duration': str(punishment.duration),
                 'homework': punishment.homework,
                 'exclusion': punishment.exclusion,
+                'during_lesson': punishment.during_lesson,
+                'homework_documents': format_attachment_list(punishment.homework_documents),
+                'circumstance_documents': format_attachment_list(punishment.circumstance_documents),
+                'giver': punishment.giver,
+                'schedule': [                    {
+                        'id': schedule.id,
+                        'start': schedule.start,
+                        'duration': schedule.duration,
+                    }
+                    for schedule in punishment.schedule],
+                'schedulable': punishment.schedulable,
             })
         return {
             'updated_at': datetime.now(),
@@ -479,3 +527,43 @@ class PronoteMenusSensor(PronoteGenericSensor):
             'updated_at': datetime.now(),
             'menus': attributes
         }
+
+
+class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, 'information_and_surveys', 'information_and_surveys', 'len')
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        unread_count = 0
+        if not self.coordinator.data['information_and_surveys'] is None:
+          for information_and_survey in self.coordinator.data['information_and_surveys']:
+              attributes.append({
+                  'id': information_and_survey.id,
+                  'author': information_and_survey.author,
+                  'title': information_and_survey.title,
+                  'read': information_and_survey.read,
+                  'creation_date': information_and_survey.creation_date,
+                  'start_date': information_and_survey.start_date,
+                  'end_date': information_and_survey.end_date,
+                  'category': information_and_survey.category,
+                  'survey': information_and_survey.survey,
+                  'anonymous_response': information_and_survey.anonymous_response,
+                  'attachments': format_attachment_list(information_and_survey.attachments),
+                  'template': information_and_survey.template,
+                  'shared_template': information_and_survey.shared_template,
+                  'content': information_and_survey.content,
+              })
+              if information_and_survey.read is False:
+                  unread_count += 1
+
+        return {
+            'updated_at': datetime.now(),
+            'unread_count': unread_count,
+            'information_and_surveys': attributes
+        }        
