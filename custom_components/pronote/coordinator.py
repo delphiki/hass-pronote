@@ -17,7 +17,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import (
     LESSON_MAX_DAYS,
     HOMEWORK_MAX_DAYS,
-    INFORMATION_AND_SURVEYS_MAX_DAYS,
 )
 
 _LOGGER = logging.getLogger(__name__)
