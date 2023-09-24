@@ -187,15 +187,18 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         """Return the state attributes."""
         self._lessons = self.coordinator.data['lessons_'+self._suffix]
         attributes = []
-        canceled_counter = 0
-        for lesson in self._lessons:
-            index = self._lessons.index(lesson)
-            if not (lesson.start == self._lessons[index - 1].start and lesson.canceled is True):
-                attributes.append(build_cours_data(lesson))
-            if lesson.canceled is False and self._start_at is None:
-                self._start_at = lesson.start
-            if lesson.canceled is True:
-                canceled_counter += 1
+        canceled_counter = None
+        if self._lessons is not None:
+            canceled_counter = 0
+            for lesson in self._lessons:
+                index = self._lessons.index(lesson)
+                if not (lesson.start == self._lessons[index - 1].start and lesson.canceled is True):
+                    attributes.append(build_cours_data(lesson))
+                if lesson.canceled is False and self._start_at is None:
+                    self._start_at = lesson.start
+                if lesson.canceled is True:
+                    canceled_counter += 1
+
         return {
             'updated_at': datetime.now(),
             'lessons': attributes,
@@ -203,6 +206,11 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             'canceled_lessons_counter': canceled_counter
         }
 
+
+def check_attr(value, output):
+    if value is not None:
+        return output
+    return None
 
 class PronoteGradesSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
@@ -216,27 +224,28 @@ class PronoteGradesSensor(PronoteGenericSensor):
         """Return the state attributes."""
         attributes = []
         index_note = 0
-        for grade in self.coordinator.data['grades']:
-            index_note += 1
-            if index_note == GRADES_TO_DISPLAY:
-                break
-            attributes.append({
-                'id': grade.id,
-                'date': grade.date,
-                'subject': grade.subject.name,
-                'comment': grade.comment,
-                'grade': grade.grade,
-                'out_of': float(re.sub(',', '.', grade.out_of)),
-                'default_out_of': float(re.sub(',', '.', grade.default_out_of)),
-                'grade_out_of': grade.grade + '/' + grade.out_of,
-                'coefficient': float(re.sub(',', '.', grade.coefficient)),
-                'class_average': float(re.sub(',', '.', grade.average)),
-                'max': float(re.sub(',', '.', grade.max)),
-                'min': float(re.sub(',', '.', grade.min)),
-                'is_bonus': grade.is_bonus,
-                'is_optionnal': grade.is_optionnal,
-                'is_out_of_20': grade.is_out_of_20,
-            })
+        if self.coordinator.data['grades'] is not None:
+            for grade in self.coordinator.data['grades']:
+                index_note += 1
+                if index_note == GRADES_TO_DISPLAY:
+                    break
+                attributes.append({
+                    'id': grade.id,
+                    'date': grade.date,
+                    'subject': grade.subject.name,
+                    'comment': grade.comment,
+                    'grade': grade.grade,
+                    'out_of': check_attr(grade.out_of, float(re.sub(',', '.', grade.out_of))),
+                    'default_out_of': check_attr(grade.default_out_of, float(re.sub(',', '.', grade.default_out_of))),
+                    'grade_out_of': check_attr(grade.out_of, grade.grade + '/' + grade.out_of),
+                    'coefficient': check_attr(grade.coefficient, float(re.sub(',', '.', grade.coefficient))),
+                    'class_average': check_attr(grade.average, float(re.sub(',', '.', grade.average))),
+                    'max': check_attr(grade.max, float(re.sub(',', '.', grade.max))),
+                    'min': check_attr(grade.min, float(re.sub(',', '.', grade.min))),
+                    'is_bonus': grade.is_bonus,
+                    'is_optionnal': grade.is_optionnal,
+                    'is_out_of_20': grade.is_out_of_20,
+                })
 
         return {
             'updated_at': datetime.now(),
@@ -256,18 +265,20 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        todo_counter = 0
-        for homework in self.coordinator.data[f"homework{self._suffix}"]:
-            attributes.append({
-                'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
-                'date': homework.date,
-                'subject': homework.subject.name,
-                'short_description': (homework.description)[0:HOMEWORK_DESC_MAX_LENGTH],
-                'description': (homework.description),
-                'done': homework.done,
-            })
-            if homework.done is False:
-                todo_counter += 1
+        todo_counter = None
+        if self.coordinator.data[f"homework{self._suffix}"] is not None:
+            todo_counter = 0
+            for homework in self.coordinator.data[f"homework{self._suffix}"]:
+                attributes.append({
+                    'index': self.coordinator.data[f"homework{self._suffix}"].index(homework),
+                    'date': homework.date,
+                    'subject': homework.subject.name,
+                    'short_description': (homework.description)[0:HOMEWORK_DESC_MAX_LENGTH],
+                    'description': (homework.description),
+                    'done': homework.done,
+                })
+                if homework.done is False:
+                    todo_counter += 1
 
         return {
             'updated_at': datetime.now(),
@@ -287,16 +298,17 @@ class PronoteAbsensesSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for absence in self.coordinator.data['absences']:
-            attributes.append({
-                'id': absence.id,
-                'from': absence.from_date,
-                'to': absence.to_date,
-                'justified': absence.justified,
-                'hours': absence.hours,
-                'days': absence.days,
-                'reason': str(absence.reasons)[2:-2],
-            })
+        if self.coordinator.data['absences'] is not None:
+            for absence in self.coordinator.data['absences']:
+                attributes.append({
+                    'id': absence.id,
+                    'from': absence.from_date,
+                    'to': absence.to_date,
+                    'justified': absence.justified,
+                    'hours': absence.hours,
+                    'days': absence.days,
+                    'reason': str(absence.reasons)[2:-2],
+                })
 
         return {
             'updated_at': datetime.now(),
@@ -315,15 +327,16 @@ class PronoteDelaysSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for delay in self.coordinator.data['delays']:
-            attributes.append({
-                'id': delay.id,
-                'date': delay.date,
-                'minutes': delay.minutes,
-                'justified': delay.justified,
-                'justification': delay.justification,
-                'reasons': str(delay.reasons)[2:-2],
-            })
+        if self.coordinator.data['delays'] is not None:
+            for delay in self.coordinator.data['delays']:
+                attributes.append({
+                    'id': delay.id,
+                    'date': delay.date,
+                    'minutes': delay.minutes,
+                    'justified': delay.justified,
+                    'justification': delay.justification,
+                    'reasons': str(delay.reasons)[2:-2],
+                })
 
         return {
             'updated_at': datetime.now(),
@@ -343,28 +356,29 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
         """Return the state attributes."""
         attributes = []
         index_note = 0
-        for evaluation in self.coordinator.data['evaluations']:
-            index_note += 1
-            if index_note == EVALUATIONS_TO_DISPLAY:
-                break
-            attributes.append({
-                'date': evaluation.date,
-                'subject': evaluation.subject.name,
-                'description': evaluation.description,
-                'coefficient': evaluation.coefficient,
-                'paliers': evaluation.paliers,
-                'teacher': evaluation.teacher,
-                'acquisitions': [
-                    {
-                        'order': acquisition.order,
-                        'name': acquisition.name,
-                        'abbreviation': acquisition.abbreviation,
-                        'level': acquisition.level,
-                        'domain': acquisition.domain,
-                    }
-                    for acquisition in evaluation.acquisitions
-                ]
-            })
+        if self.coordinator.data['evaluations'] is not None:
+            for evaluation in self.coordinator.data['evaluations']:
+                index_note += 1
+                if index_note == EVALUATIONS_TO_DISPLAY:
+                    break
+                attributes.append({
+                    'date': evaluation.date,
+                    'subject': evaluation.subject.name,
+                    'description': evaluation.description,
+                    'coefficient': evaluation.coefficient,
+                    'paliers': evaluation.paliers,
+                    'teacher': evaluation.teacher,
+                    'acquisitions': [
+                        {
+                            'order': acquisition.order,
+                            'name': acquisition.name,
+                            'abbreviation': acquisition.abbreviation,
+                            'level': acquisition.level,
+                            'domain': acquisition.domain,
+                        }
+                        for acquisition in evaluation.acquisitions
+                    ]
+                })
 
         return {
             'updated_at': datetime.now(),
@@ -383,15 +397,16 @@ class PronoteAveragesSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for average in self.coordinator.data['averages']:
-            attributes.append({
-                'average': average.student,
-                'class': average.class_average,
-                'max': average.max,
-                'min': average.min,
-                'out_of': average.out_of,
-                'subject': average.subject.name,
-            })
+        if self.coordinator.data['averages'] is not None:
+            for average in self.coordinator.data['averages']:
+                attributes.append({
+                    'average': average.student,
+                    'class': average.class_average,
+                    'max': average.max,
+                    'min': average.min,
+                    'out_of': average.out_of,
+                    'subject': average.subject.name,
+                })
         return {
             'updated_at': datetime.now(),
             'averages': attributes
@@ -409,18 +424,19 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        for punishment in self.coordinator.data['punishments']:
-            attributes.append({
-                'id': punishment.id,
-                'date': punishment.given.strftime("%Y-%m-%d"),
-                'subject': punishment.during_lesson,
-                'reasons': punishment.reasons,
-                'circumstances': punishment.circumstances,
-                'nature': punishment.nature,
-                'duration': str(punishment.duration),
-                'homework': punishment.homework,
-                'exclusion': punishment.exclusion,
-            })
+        if self.coordinator.data['punishments'] is not None:
+            for punishment in self.coordinator.data['punishments']:
+                attributes.append({
+                    'id': punishment.id,
+                    'date': punishment.given.strftime("%Y-%m-%d"),
+                    'subject': punishment.during_lesson,
+                    'reasons': punishment.reasons,
+                    'circumstances': punishment.circumstances,
+                    'nature': punishment.nature,
+                    'duration': str(punishment.duration),
+                    'homework': punishment.homework,
+                    'exclusion': punishment.exclusion,
+                })
         return {
             'updated_at': datetime.now(),
             'punishments': attributes
@@ -460,7 +476,7 @@ class PronoteMenusSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        if not self.coordinator.data['menus'] is None:
+        if self.coordinator.data['menus'] is not None:
             for menu in self.coordinator.data['menus']:
                 attributes.append({
                     'id': menu.id,
