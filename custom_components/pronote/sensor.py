@@ -277,6 +277,7 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
                 'description': (homework.description),
                 'done': homework.done,
                 'background_color': homework.background_color,
+                'files': format_attachment_list(homework.files),
             })
             if homework.done is False:
                 todo_counter += 1
