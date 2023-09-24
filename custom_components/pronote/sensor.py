@@ -52,6 +52,7 @@ async def async_setup_entry(
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
+        PronoteInformationAndSurveysSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
 
@@ -160,7 +161,6 @@ def cours_affiche_from_lesson(lesson_data):
 
 def build_cours_data(lesson_data):
     return {
-        'id': lesson_data.id,
         'start_at': lesson_data.start,
         'end_at': lesson_data.end,
         'start_time': lesson_data.start.strftime("%H:%M"),
@@ -170,6 +170,18 @@ def build_cours_data(lesson_data):
         'canceled': lesson_data.canceled,
         'status': lesson_data.status,
         'background_color': lesson_data.background_color,
+        'teacher_name': lesson_data.teacher_name,
+        'teacher_names': lesson_data.teacher_names,
+        'classrooms': lesson_data.classrooms,
+        'outing': lesson_data.outing,
+        'memo': lesson_data.memo,
+        'group_name': lesson_data.group_name,
+        'group_names': lesson_data.group_names,
+        'exempted': lesson_data.exempted,
+        'virtual_classrooms': lesson_data.virtual_classrooms,
+        'num': lesson_data.num,
+        'detention': lesson_data.detention,
+        'test': lesson_data.test,
     }
 
 
@@ -230,7 +242,6 @@ class PronoteGradesSensor(PronoteGenericSensor):
                 if index_note == GRADES_TO_DISPLAY:
                     break
                 attributes.append({
-                    'id': grade.id,
                     'date': grade.date,
                     'subject': grade.subject.name,
                     'comment': grade.comment,
@@ -301,7 +312,6 @@ class PronoteAbsensesSensor(PronoteGenericSensor):
         if self.coordinator.data['absences'] is not None:
             for absence in self.coordinator.data['absences']:
                 attributes.append({
-                    'id': absence.id,
                     'from': absence.from_date,
                     'to': absence.to_date,
                     'justified': absence.justified,
@@ -330,7 +340,6 @@ class PronoteDelaysSensor(PronoteGenericSensor):
         if self.coordinator.data['delays'] is not None:
             for delay in self.coordinator.data['delays']:
                 attributes.append({
-                    'id': delay.id,
                     'date': delay.date,
                     'minutes': delay.minutes,
                     'justified': delay.justified,
@@ -362,19 +371,27 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
                 if index_note == EVALUATIONS_TO_DISPLAY:
                     break
                 attributes.append({
-                    'date': evaluation.date,
-                    'subject': evaluation.subject.name,
-                    'description': evaluation.description,
-                    'coefficient': evaluation.coefficient,
-                    'paliers': evaluation.paliers,
-                    'teacher': evaluation.teacher,
+                  'name': evaluation.name,
+                  'domain': evaluation.domain,
+                  'date': evaluation.date,
+                  'subject': evaluation.subject.name,
+                  'description': evaluation.description,
+                  'coefficient': evaluation.coefficient,
+                  'paliers': evaluation.paliers,
+                  'teacher': evaluation.teacher,
                     'acquisitions': [
                         {
-                            'order': acquisition.order,
-                            'name': acquisition.name,
-                            'abbreviation': acquisition.abbreviation,
-                            'level': acquisition.level,
-                            'domain': acquisition.domain,
+                          'order': acquisition.order,
+                          'name_id': acquisition.name_id,
+                          'name': acquisition.name,
+                          'abbreviation': acquisition.abbreviation,
+                          'level': acquisition.level,
+                          'domain_id': acquisition.domain_id,
+                          'domain': acquisition.domain,
+                          'coefficient': acquisition.coefficient,
+                          'pillar_id': acquisition.pillar_id,
+                          'pillar': acquisition.pillar,
+                          'pillar_prefix': acquisition.pillar_prefix,
                         }
                         for acquisition in evaluation.acquisitions
                     ]
@@ -405,13 +422,24 @@ class PronoteAveragesSensor(PronoteGenericSensor):
                     'max': average.max,
                     'min': average.min,
                     'out_of': average.out_of,
-                    'subject': average.subject.name,
+                  'default_out_of': average.default_out_of,
+                  'subject': average.subject.name,
+                  'background_color': average.background_color,
                 })
         return {
             'updated_at': datetime.now(),
             'averages': attributes
         }
 
+
+def format_attachment_list(attachments):
+    return [
+        {
+            'name': attachment.name,
+            'url': attachment.url,
+            'type': attachment.type,
+        }
+        for attachment in attachments]
 
 class PronotePunishmentsSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
@@ -427,15 +455,24 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
         if self.coordinator.data['punishments'] is not None:
             for punishment in self.coordinator.data['punishments']:
                 attributes.append({
-                    'id': punishment.id,
-                    'date': punishment.given.strftime("%Y-%m-%d"),
-                    'subject': punishment.during_lesson,
-                    'reasons': punishment.reasons,
-                    'circumstances': punishment.circumstances,
-                    'nature': punishment.nature,
-                    'duration': str(punishment.duration),
-                    'homework': punishment.homework,
-                    'exclusion': punishment.exclusion,
+                  'date': punishment.given.strftime("%Y-%m-%d"),
+                  'subject': punishment.during_lesson,
+                  'reasons': punishment.reasons,
+                  'circumstances': punishment.circumstances,
+                  'nature': punishment.nature,
+                  'duration': str(punishment.duration),
+                  'homework': punishment.homework,
+                  'exclusion': punishment.exclusion,
+                  'during_lesson': punishment.during_lesson,
+                  'homework_documents': format_attachment_list(punishment.homework_documents),
+                  'circumstance_documents': format_attachment_list(punishment.circumstance_documents),
+                  'giver': punishment.giver,
+                  'schedule': [                    {
+                          'start': schedule.start,
+                          'duration': schedule.duration,
+                      }
+                      for schedule in punishment.schedule],
+                  'schedulable': punishment.schedulable,
                 })
         return {
             'updated_at': datetime.now(),
@@ -452,12 +489,10 @@ def format_food_list(food_list):
         formatted_food_labels = []
         for label in food.labels:
             formatted_food_labels.append({
-                'id': label.id,
                 'name': label.name,
                 'color': label.color,
             })
         formatted_food_list.append({
-            'id': food.id,
             'name': food.name,
             'labels': formatted_food_labels,
         })
@@ -479,7 +514,6 @@ class PronoteMenusSensor(PronoteGenericSensor):
         if self.coordinator.data['menus'] is not None:
             for menu in self.coordinator.data['menus']:
                 attributes.append({
-                    'id': menu.id,
                     'name': menu.name,
                     'date': menu.date.strftime("%Y-%m-%d"),
                     'is_lunch': menu.is_lunch,
@@ -495,3 +529,42 @@ class PronoteMenusSensor(PronoteGenericSensor):
             'updated_at': datetime.now(),
             'menus': attributes
         }
+
+
+class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, 'information_and_surveys', 'information_and_surveys', 'len')
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        unread_count = 0
+        if not self.coordinator.data['information_and_surveys'] is None:
+          for information_and_survey in self.coordinator.data['information_and_surveys']:
+              attributes.append({
+                  'author': information_and_survey.author,
+                  'title': information_and_survey.title,
+                  'read': information_and_survey.read,
+                  'creation_date': information_and_survey.creation_date,
+                  'start_date': information_and_survey.start_date,
+                  'end_date': information_and_survey.end_date,
+                  'category': information_and_survey.category,
+                  'survey': information_and_survey.survey,
+                  'anonymous_response': information_and_survey.anonymous_response,
+                  'attachments': format_attachment_list(information_and_survey.attachments),
+                  'template': information_and_survey.template,
+                  'shared_template': information_and_survey.shared_template,
+                  'content': information_and_survey.content,
+              })
+              if information_and_survey.read is False:
+                  unread_count += 1
+
+        return {
+            'updated_at': datetime.now(),
+            'unread_count': unread_count,
+            'information_and_surveys': attributes
+        }        
