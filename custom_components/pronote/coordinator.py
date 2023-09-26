@@ -91,8 +91,12 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(minutes=15),
         )
         self.config_entry = entry
+
+    async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
+        """Get the latest data from Pronote and updates the state."""
+        data = self.config_entry.data
         self.data = {
-            "account_type": entry.data['account_type'],
+            "account_type": data['account_type'],
             "sensor_prefix": None,
             "child_info": None,
             "lessons_today": None,
@@ -110,10 +114,6 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "punishments": None,
             "menus": None,
         }
-
-    async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
-        """Get the latest data from Pronote and updates the state."""
-        data = self.config_entry.data
 
         client = await self.hass.async_add_executor_job(get_pronote_client, data)
 
