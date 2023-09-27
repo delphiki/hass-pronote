@@ -50,6 +50,8 @@ async def async_setup_entry(
         PronoteAbsensesSensor(coordinator),
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
+        PronoteOverall_averageSensor(coordinator),
+        PronoteClass_overall_averageSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
 
@@ -412,6 +414,53 @@ class PronoteAveragesSensor(PronoteGenericSensor):
             'averages': attributes
         }
 
+class PronoteOverall_averageSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, 'overall_average', 'overall_average', 'len')
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        attributes = []
+        if self.coordinator.data['overall_average'] is not None:
+            for overall_average in self.coordinator.data['overall_average']:
+                attributes.append({
+                    (f"{overall_average.replace(',', '.')}"), 
+                })
+        return (''.join(''.join(a) for a in attributes))
+        
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+
+        return {'updated_at': datetime.now().strftime('%d-%m-%Y %H:%M')}
+        
+class PronoteClass_overall_averageSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, 'class_overall_average', 'class_overall_average', 'len')
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        attributes = []
+        if self.coordinator.data['class_overall_average'] is not None:
+            for class_overall_average in self.coordinator.data['class_overall_average']:
+                attributes.append({
+                    (f"{class_overall_average.replace(',', '.')}"), 
+                })
+        return (''.join(''.join(a) for a in attributes))
+        
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+
+        return {'updated_at': datetime.now().strftime('%d-%m-%Y %H:%M')}
 
 class PronotePunishmentsSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
