@@ -63,6 +63,13 @@ def get_averages(client):
     averages = client.current_period.averages
     return averages
 
+def get_overall_average(client):
+    overall_average = client.current_period.overall_average
+    return overall_average
+    
+def get_class_overall_average(client):
+    class_overall_average = client.current_period.class_overall_average
+    return class_overall_average
 
 def get_punishments(client):
     punishments = client.current_period.punishments
@@ -106,6 +113,8 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "ical_url": None,
             "grades": None,
             "averages": None,
+            "overall_average": None,
+            "class_overall_average": None,
             "homework": None,
             "homework_period": None,
             "absences": None,
@@ -195,6 +204,18 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.info(
                 "Error getting averages from pronote: %s", ex)
 
+        try:
+            self.data['overall_average'] = await self.hass.async_add_executor_job(get_overall_average, client)
+        except Exception as ex:
+            _LOGGER.info(
+                "Error getting overall_average from pronote: %s", ex)
+                
+        try:
+            self.data['class_overall_average'] = await self.hass.async_add_executor_job(get_class_overall_average, client)
+        except Exception as ex:
+            _LOGGER.info(
+                "Error getting class_overall_average from pronote: %s", ex)
+            
         try:
             homeworks = await self.hass.async_add_executor_job(client.homework, date.today())
             self.data['homework'] = sorted(
