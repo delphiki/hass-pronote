@@ -428,7 +428,7 @@ class PronoteOverall_averageSensor(PronoteGenericSensor):
         if self.coordinator.data['overall_average'] is not None:
             for overall_average in self.coordinator.data['overall_average']:
                 attributes.append({
-                    (f"{overall_average.replace(',', '.')}"), 
+                    (f"{overall_average}"), 
                 })
         return (''.join(''.join(a) for a in attributes))
         
@@ -452,7 +452,7 @@ class PronoteClass_overall_averageSensor(PronoteGenericSensor):
         if self.coordinator.data['class_overall_average'] is not None:
             for class_overall_average in self.coordinator.data['class_overall_average']:
                 attributes.append({
-                    (f"{class_overall_average.replace(',', '.')}"), 
+                    (f"{class_overall_average}"), 
                 })
         return (''.join(''.join(a) for a in attributes))
         
