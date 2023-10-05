@@ -202,6 +202,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         super().__init__(coordinator, 'lessons_'+suffix, 'timetable_'+suffix, 'len')
         self._suffix = suffix
         self._start_at = None
+        self._end_at = None
 
     @property
     def extra_state_attributes(self):
@@ -211,7 +212,9 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         canceled_counter = None
         if self._lessons is not None:
             self._start_at = None
+            self._end_at = None
             canceled_counter = 0
+            single_day = self._suffix in ['today', 'tomorrow', 'next_day']
             for lesson in self._lessons:
                 index = self._lessons.index(lesson)
                 if not (lesson.start == self._lessons[index - 1].start and lesson.canceled is True):
@@ -220,10 +223,13 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                     self._start_at = lesson.start
                 if lesson.canceled is True:
                     canceled_counter += 1
+                if single_day is True and lesson.canceled is False:
+                    self._end_at = lesson.end
         return {
             'updated_at': datetime.now(),
             'lessons': attributes,
             'day_start_at': self._start_at,
+            'day_end_at': self._end_at,
             'canceled_lessons_counter': canceled_counter
         }
 
