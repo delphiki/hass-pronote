@@ -210,6 +210,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         attributes = []
         canceled_counter = None
         if self._lessons is not None:
+            self._start_at = None
             canceled_counter = 0
             for lesson in self._lessons:
                 index = self._lessons.index(lesson)
