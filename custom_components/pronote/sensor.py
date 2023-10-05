@@ -471,16 +471,15 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
                     'duration': str(punishment.duration),
                     'homework': punishment.homework,
                     'exclusion': punishment.exclusion,
-	                'during_lesson': punishment.during_lesson,
-	                'homework_documents': format_attachment_list(punishment.homework_documents),
-	                'circumstance_documents': format_attachment_list(punishment.circumstance_documents),
-	                'giver': punishment.giver,
-	                'schedule': [                    {
-	                        'start': schedule.start,
-	                        'duration': schedule.duration,
-	                    }
-	                    for schedule in punishment.schedule],
-	                'schedulable': punishment.schedulable,
+                    'during_lesson': punishment.during_lesson,
+                    'homework_documents': format_attachment_list(punishment.homework_documents),
+                    'circumstance_documents': format_attachment_list(punishment.circumstance_documents),
+                    'giver': punishment.giver,
+                    'schedule': [{
+                        'start': schedule.start,
+                        'duration': schedule.duration,
+                    } for schedule in punishment.schedule],
+                    'schedulable': punishment.schedulable,
                 })
         return {
             'updated_at': datetime.now(),
