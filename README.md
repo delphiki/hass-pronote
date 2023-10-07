@@ -15,7 +15,7 @@ HACS > Integrations > **Pronote**
 
 Copy the `pronote` folder from latest release to the `custom_components` folder in your `config` folder.
 
-## Configuration
+## Configuration with Username Password
 
 Click on the following button:  
 [![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/brand/?brand=pronote)  
@@ -28,6 +28,30 @@ Then follow the step of the config flow:
 
 Note: if you're using a Parent account, you'll be prompt to select a child:  
 ![Pronote config flow](doc/config_flow_parent.png)
+
+
+## Configuration with QR Code
+
+Create the QR Code from your pronote account
+![image](https://github.com/vingerha/hass-pronote/assets/44190435/93d75362-b9ab-4844-abdf-0df771fd0602)
+
+Scan it to get the json representation, e.g. with google lens (app on phone).
+example, copy the text and send by email, note that the code is valid for max 10 mins.
+![image](https://github.com/vingerha/hass-pronote/assets/44190435/85d0385f-b4d3-45f2-8192-991eb7da8519)
+
+Add a pronote entry
+![image](https://github.com/vingerha/hass-pronote/assets/44190435/88043fb7-3ac3-47c8-9ac8-5ce0f6bb0056)
+
+Use json, the pin with which you create the code and a random identifier
+![image](https://github.com/vingerha/hass-pronote/assets/44190435/76b68074-2815-46ac-bcdd-24b2299aa9cd)
+
+
+
+
+
+
+
+
 
 ## Usage
 
