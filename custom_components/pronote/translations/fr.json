@@ -16,13 +16,27 @@
             },
             "user": {
                 "data": {
+                    "connection_type": "Type de connection"
+                }
+            },				
+            "up": {
+                "data": {
                     "account_type": "Type de compte",
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
                     "username": "Identifiant"
-                }
-            }
+                }				
+            },
+            "qr": {
+                "data": {
+					"account_type": "Type de compte",
+				    "qr_code_json": "Version json du QR",
+				    "qr_code_pin": "PIN utilisé en créant le QR",
+				    "qr_code_uuid": "Identifiant aléatoire"
+                },
+				"description": "JSON du QR: p.e. avec Google Lens."
+			}
         }
     }
 }

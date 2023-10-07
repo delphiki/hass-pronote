@@ -3,12 +3,26 @@
     "step": {
       "user": {
         "data": {
+          "connection_type": "Authentication"
+        }
+      },
+	  "up": {
+        "data": {
           "url": "[%key:common::config_flow::data::url%]",
           "account_type": "Account type",
           "username": "[%key:common::config_flow::data::username%]",
           "password": "[%key:common::config_flow::data::password%]",
-          "ent": "ENT"
-        }
+          "ent": "Ent"        
+		  }
+      },
+	  "qr": {
+        "data": {
+		  "account_type": "Account type",
+		  "qr_code_json": "JSON version of QR",
+		  "qr_code_pin": "pin when creating QR",
+		  "qr_code_uuid": "Random identifier"
+        },
+		"description": "JSON of QR can be retrieved a.o. via scanning with Google Lens."
       },
       "parent": {
         "data": {
@@ -26,3 +40,5 @@
     }
   }
 }
+
+

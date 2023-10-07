@@ -1,7 +1,7 @@
 """Data update coordinator for the Pronote integration."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import logging
@@ -21,25 +21,49 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-
 def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
-    url = data['url'] + ('parent' if data['account_type'] ==
+   
+    _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
+    
+    if data['connection_type'] == 'qrcode':  
+        qr_code_url=data['qr_code_url']
+        qr_code_username=data['qr_code_username']
+        qr_code_uuid=data['qr_code_uuid']
+        qr_code_password = open("/config/custom_components/pronote/qrcredentials.txt", "r").read()
+
+        _LOGGER.debug(f"Coordinator uses qr_code_username: {qr_code_username}")
+        _LOGGER.debug(f"Coordinator uses qr_code_pwd: {qr_code_password}")
+        try:
+            qr_code_internal_password
+        except:
+            _LOGGER.info(f"Coordinator qr_code_internal_pwd not defined (yet)")
+        else:
+            _LOGGER.debug(f"Coordinator uses qr_code_internal_pwd: {qr_code_internal_password}")
+        client = pronotepy.Client.token_login(qr_code_url,qr_code_username,qr_code_password,qr_code_uuid)
+        qr_code_internal_password = client.password      
+        qrcredentials = open("/config/custom_components/pronote/qrcredentials.txt", "w+")
+        qrcredentials.writelines([client.password])
+        qrcredentials.close()       
+
+    else:
+        url = data['url'] + ('parent' if data['account_type'] ==
                          'parent' else 'eleve') + '.html'
 
-    ent = None
-    if 'ent' in data:
-        ent = getattr(pronotepy.ent, data['ent'])
+        ent = None
+        
+        if 'ent' in data:
+            ent = getattr(pronotepy.ent, data['ent'])
 
-    if not ent:
-        url += '?login=true'
-
-    try:
-        client = (pronotepy.ParentClient if data['account_type'] ==
-                  'parent' else pronotepy.Client)(url, data['username'], data['password'], ent)
-        _LOGGER.info(f"Client name: {client.info.name}")
-    except Exception as err:
-        _LOGGER.debug(err)
-        return None
+        if not ent:
+            url += '?login=true'  
+        
+        try:
+            client = (pronotepy.ParentClient if data['account_type'] ==
+                      'parent' else pronotepy.Client)(url, data['username'], data['password'], ent)
+            _LOGGER.info(f"Client name: {client.info.name}")
+        except Exception as err:
+            _LOGGER.debug(err)
+            return None
 
     return client
 
@@ -91,7 +115,6 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(minutes=15),
         )
         self.config_entry = entry
-
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
         data = self.config_entry.data
