@@ -37,6 +37,7 @@ Create the QR Code from your pronote account
 
 Scan it to get the json representation, e.g. with google lens (app on phone).
 example, copy the text and send by email, note that the code is valid for max 10 mins.
+
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/85d0385f-b4d3-45f2-8192-991eb7da8519)
 
 Add a pronote entry
