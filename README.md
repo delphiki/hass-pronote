@@ -46,6 +46,9 @@ example, copy the text and send by email, note that the code is valid for max 10
 
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/85d0385f-b4d3-45f2-8192-991eb7da8519)
 
+The json looks like:
+{"jeton":"AC671F...very long code ... 758B6F","login":"9B91...shorter code...AC0D","url":"https://[id of your school].index-education.net/pronote/mobile.eleve.html"}
+
 Add a pronote entry
 
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/88043fb7-3ac3-47c8-9ac8-5ce0f6bb0056)
