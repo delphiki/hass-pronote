@@ -32,6 +32,12 @@ Note: if you're using a Parent account, you'll be prompt to select a child:
 
 ## Configuration with QR Code
 
+Click on the following button:  
+[![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/brand/?brand=pronote)  
+
+Or go to :  
+Settings > Devices & Sevices > Integrations > Add Integration, and search for "Pronote"
+
 Create the QR Code from your pronote account
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/93d75362-b9ab-4844-abdf-0df771fd0602)
 
@@ -41,9 +47,11 @@ example, copy the text and send by email, note that the code is valid for max 10
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/85d0385f-b4d3-45f2-8192-991eb7da8519)
 
 Add a pronote entry
+
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/88043fb7-3ac3-47c8-9ac8-5ce0f6bb0056)
 
 Use json, the pin with which you create the code and a random identifier
+
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/76b68074-2815-46ac-bcdd-24b2299aa9cd)
 
 
