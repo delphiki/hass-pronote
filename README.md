@@ -41,8 +41,9 @@ Settings > Devices & Sevices > Integrations > Add Integration, and search for "P
 Create the QR Code from your pronote account
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/93d75362-b9ab-4844-abdf-0df771fd0602)
 
-Scan it to get the json representation, e.g. with google lens (app on phone).
-example, copy the text and send by email, note that the code is valid for max 10 mins.
+Scan it to get the json representation, e.g. 
+- with google lens (app on phone). example, copy the text and send by email, note that the code is valid for max 10 mins.
+- nip it from screen and upload here: https://nanonets.com/qr-code-scanner?ref=nanonets.com
 
 ![image](https://github.com/vingerha/hass-pronote/assets/44190435/85d0385f-b4d3-45f2-8192-991eb7da8519)
 
