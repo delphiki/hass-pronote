@@ -29,7 +29,7 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
         qr_code_url=data['qr_code_url']
         qr_code_username=data['qr_code_username']
         qr_code_uuid=data['qr_code_uuid']
-        qr_code_password = open("/config/custom_components/pronote/qrcredentials.txt", "r").read()
+        qr_code_password = open(f"/config/custom_components/pronote/qrcredentials_{qr_code_username}.txt", "r").read()
 
         _LOGGER.debug(f"Coordinator uses qr_code_username: {qr_code_username}")
         _LOGGER.debug(f"Coordinator uses qr_code_pwd: {qr_code_password}")
@@ -41,9 +41,9 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
             _LOGGER.debug(f"Coordinator uses qr_code_internal_pwd: {qr_code_internal_password}")
         client = pronotepy.Client.token_login(qr_code_url,qr_code_username,qr_code_password,qr_code_uuid)
         qr_code_internal_password = client.password      
-        qrcredentials = open("/config/custom_components/pronote/qrcredentials.txt", "w+")
+        qrcredentials = open(f"/config/custom_components/pronote/qrcredentials_{qr_code_username}.txt", "w+")
         qrcredentials.writelines([client.password])
-        qrcredentials.close()       
+        qrcredentials.close()         
 
     else:
         url = data['url'] + ('parent' if data['account_type'] ==

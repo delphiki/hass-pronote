@@ -91,7 +91,7 @@ def auth_test_qr(data) -> pronotepy.Client | pronotepy.ParentClient | None:
     data['qr_code_username']=client.username
     
     # save password to file, password changes with every login
-    qrcredentials = open("/config/custom_components/pronote/qrcredentials.txt", "w+")
+    qrcredentials = open(f"/config/custom_components/pronote/qrcredentials_{data['qr_code_username']}.txt", "w+")
     qrcredentials.writelines([client.password])
     qrcredentials.close()
 
@@ -148,11 +148,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
             else:
                 if user_input['account_type'] == 'parent':
-                    self.user_step_data = user_input
+                    self._user_inputs.update(user_input)
+                    _LOGGER.debug("_User Inputs UP Parent: %s", self._user_inputs)
+                    self.user_step_data = self._user_inputs
                     self.pronote_client = client
                     return await self.async_step_parent()
                 self._user_inputs.update(user_input)
-                _LOGGER.info("_User Inputs UP: %s", self._user_inputs)
+                _LOGGER.debug("_User Inputs UP: %s", self._user_inputs)
                 return self.async_create_entry(title=client.info.name, data=self._user_inputs)
         
 
@@ -180,7 +182,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
             else:
                 self._user_inputs.update(user_input)
-                _LOGGER.info("_User Inputs QR: %s", self._user_inputs)
+                _LOGGER.debug("_User Inputs QR: %s", self._user_inputs)
                 return self.async_create_entry(title=client.info.name, data=self._user_inputs)
         
 
@@ -210,7 +212,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self.user_step_data['child'] = user_input['child']
-
+        _LOGGER.debug("Parent Input UP: %s", self.user_step_data)
         return self.async_create_entry(title=children[user_input['child']]+" (via compte parent)", data=self.user_step_data)        
 
 
