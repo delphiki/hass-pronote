@@ -93,11 +93,16 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "information_and_surveys": None,
         }
 
-        client = await self.hass.async_add_executor_job(get_pronote_client, data, self.hass.config.config_dir)
+        client = await self.hass.async_add_executor_job(get_pronote_client, data)
 
         if client is None:
             _LOGGER.error('Unable to init pronote client')
             return None
+
+        if data['connection_type'] == 'qrcode':
+            new_data = self.config_entry.data.copy()
+            new_data.update({"qr_code_password": client.password})
+            self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
 
         child_info = client.info
 

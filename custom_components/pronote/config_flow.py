@@ -120,7 +120,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input['account_type'] = self._user_inputs['account_type']
                 user_input['qr_code_uuid'] = str(uuid.uuid4())
 
-                client = await self.hass.async_add_executor_job(get_client_from_qr_code, user_input, self.hass.config.config_dir)
+                client = await self.hass.async_add_executor_job(get_client_from_qr_code, user_input)
 
                 if client is None:
                     raise InvalidAuth
@@ -129,6 +129,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 self._user_inputs['qr_code_url'] = client.pronote_url
                 self._user_inputs['qr_code_username'] = client.username
+                self._user_inputs['qr_code_password'] = client.password
                 self._user_inputs['qr_code_uuid'] = client.uuid
 
                 if self._user_inputs['account_type'] == 'parent':

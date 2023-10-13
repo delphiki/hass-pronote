@@ -6,11 +6,11 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
-def get_pronote_client(data, config_dir: str) -> pronotepy.Client | pronotepy.ParentClient | None:
+def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
     _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
 
     if data['connection_type'] == 'qrcode':
-        return get_client_from_qr_code(data, config_dir)
+        return get_client_from_qr_code(data)
     else:
         return get_client_from_username_password(data)
 
@@ -38,10 +38,7 @@ def get_client_from_username_password(data) -> pronotepy.Client | pronotepy.Pare
 
     return client
 
-def get_credentials_file_path(username, config_dir) -> str:
-    return f"{config_dir}/pronote_qr_credentials_{username}.txt"
-
-def get_client_from_qr_code(data, config_dir: str) -> pronotepy.Client | pronotepy.ParentClient | None:
+def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient | None:
 
     if 'qr_code_json' in data: # first login from QR Code JSON
 
@@ -64,13 +61,8 @@ def get_client_from_qr_code(data, config_dir: str) -> pronotepy.Client | pronote
     else:
         qr_code_url = data['qr_code_url']
         qr_code_username = data['qr_code_username']
-        qr_code_password = None
+        qr_code_password = data['qr_code_password']
         qr_code_uuid = data['qr_code_uuid']
-
-    credentials_file_path = get_credentials_file_path(qr_code_username, config_dir)
-
-    if qr_code_password is None:
-        qr_code_password = open(credentials_file_path, "r").read()
 
     _LOGGER.info(f"Coordinator uses qr_code_username: {qr_code_username}")
     _LOGGER.info(f"Coordinator uses qr_code_pwd: {qr_code_password}")
@@ -81,10 +73,6 @@ def get_client_from_qr_code(data, config_dir: str) -> pronotepy.Client | pronote
         qr_code_password,
         qr_code_uuid
     )
-
-    qrcredentials = open(credentials_file_path, "w+")
-    qrcredentials.writelines([client.password]) # always store the latest generated password
-    qrcredentials.close()
 
     return client
 

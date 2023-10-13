@@ -24,9 +24,6 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
 
         new = {**config_entry.data}
         new['connection_type'] = 'username_password'
-        new['qr_code_url'] = None
-        new['qr_code_username'] = None
-        new['qr_code_uuid'] = None
 
         config_entry.version = 2
         hass.config_entries.async_update_entry(config_entry, data=new)
