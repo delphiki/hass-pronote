@@ -1,11 +1,12 @@
 """Data update coordinator for the Pronote integration."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
 
 import logging
 import pronotepy
+from .pronote_helper import *
 import re
 
 from homeassistant.config_entries import ConfigEntry
@@ -20,53 +21,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
-   
-    _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
-    
-    if data['connection_type'] == 'qrcode':  
-        qr_code_url=data['qr_code_url']
-        qr_code_username=data['qr_code_username']
-        qr_code_uuid=data['qr_code_uuid']
-        qr_code_password = open(f"/config/custom_components/pronote/qrcredentials_{qr_code_username}.txt", "r").read()
-
-        _LOGGER.debug(f"Coordinator uses qr_code_username: {qr_code_username}")
-        _LOGGER.debug(f"Coordinator uses qr_code_pwd: {qr_code_password}")
-        try:
-            qr_code_internal_password
-        except:
-            _LOGGER.info(f"Coordinator qr_code_internal_pwd not defined (yet)")
-        else:
-            _LOGGER.debug(f"Coordinator uses qr_code_internal_pwd: {qr_code_internal_password}")
-        client = pronotepy.Client.token_login(qr_code_url,qr_code_username,qr_code_password,qr_code_uuid)
-        qr_code_internal_password = client.password      
-        qrcredentials = open(f"/config/custom_components/pronote/qrcredentials_{qr_code_username}.txt", "w+")
-        qrcredentials.writelines([client.password])
-        qrcredentials.close()         
-
-    else:
-        url = data['url'] + ('parent' if data['account_type'] ==
-                         'parent' else 'eleve') + '.html'
-
-        ent = None
-        
-        if 'ent' in data:
-            ent = getattr(pronotepy.ent, data['ent'])
-
-        if not ent:
-            url += '?login=true'  
-        
-        try:
-            client = (pronotepy.ParentClient if data['account_type'] ==
-                      'parent' else pronotepy.Client)(url, data['username'], data['password'], ent)
-            _LOGGER.info(f"Client name: {client.info.name}")
-        except Exception as err:
-            _LOGGER.debug(err)
-            return None
-
-    return client
-
 
 def get_grades(client):
     grades = client.current_period.grades
@@ -139,7 +93,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "information_and_surveys": None,
         }
 
-        client = await self.hass.async_add_executor_job(get_pronote_client, data)
+        client = await self.hass.async_add_executor_job(get_pronote_client, data, self.hass.config.config_dir)
 
         if client is None:
             _LOGGER.error('Unable to init pronote client')

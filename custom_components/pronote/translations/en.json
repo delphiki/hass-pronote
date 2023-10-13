@@ -14,29 +14,27 @@
                     "child": "Child"
                 }
             },
+            "qr_code_login": {
+                "data": {
+                    "qr_code_json": "JSON version of QR",
+                    "qr_code_pin": "Pin code"
+                },
+                "description": "JSON of QR Code"
+            },
             "user": {
                 "data": {
-                    "connection_type": "Connection Type"
+                    "account_type": "Account type",
+                    "connection_type": "Authentication"
                 }
             },
-            "up": {
+            "username_password_login": {
                 "data": {
-                    "account_type": "Account type",
-                    "ent": "ENT",
+                    "ent": "Ent",
                     "password": "Password",
                     "url": "URL",
                     "username": "Username"
-				}
-            },
-            "qr": {
-                "data": {
-					"account_type": "Account type",
-				    "qr_code_json": "Json version of QR",
-				    "qr_code_pin": "pin when creating QR",
-				    "qr_code_uuid": "Random identifier"
-                },
-				"description": "JSON of QR: a.o. via scanning with Google Lens."			
-            }			
+                }
+            }
         }
     }
 }

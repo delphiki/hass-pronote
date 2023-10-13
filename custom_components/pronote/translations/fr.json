@@ -18,25 +18,23 @@
                 "data": {
                     "connection_type": "Type de connection"
                 }
-            },				
-            "up": {
+            },
+            "username_password_login": {
                 "data": {
                     "account_type": "Type de compte",
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
                     "username": "Identifiant"
-                }				
+                }
             },
-            "qr": {
+            "qr_code_login": {
                 "data": {
-					"account_type": "Type de compte",
-				    "qr_code_json": "Version json du QR",
-				    "qr_code_pin": "PIN utilisé en créant le QR",
-				    "qr_code_uuid": "Identifiant aléatoire"
+                    "qr_code_json": "JSON du QR Code",
+                    "qr_code_pin": "PIN utilisé en créant le QR Code"
                 },
-				"description": "JSON du QR: p.e. avec Google Lens."
-			}
+                "description": "JSON du QR Code"
+            }
         }
     }
 }
