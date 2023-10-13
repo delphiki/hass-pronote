@@ -15,7 +15,7 @@ HACS > Integrations > **Pronote**
 
 Copy the `pronote` folder from latest release to the `custom_components` folder in your `config` folder.
 
-## Configuration with Username Password
+## Configuration
 
 Click on the following button:  
 [![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/brand/?brand=pronote)  
@@ -23,67 +23,58 @@ Click on the following button:
 Or go to :  
 Settings > Devices & Sevices > Integrations > Add Integration, and search for "Pronote"
 
-Then follow the step of the config flow:  
-![Pronote config flow](doc/config_flow.png)
+You can choose between two options when adding a config entry.  
 
-Note: if you're using a Parent account, you'll be prompt to select a child:  
-![Pronote config flow](doc/config_flow_parent.png)
+### Option 1: using username and password
 
+Use your Pronote URL with username, password and ENT (optional):  
+![Pronote config flow](doc/config_flow_username_password.png)
 
-## Configuration with QR Code
+### Option 2: using the QR Code
 
-Click on the following button:  
-[![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/brand/?brand=pronote)  
+Install the following Chrome Extension: [QR Code Scanner for Google Chrome™](https://chrome.google.com/webstore/detail/qr-code-scanner-for-googl/mcgfkahjhghbjdgiibjfkgpenehdldpg/related?hl=en) (only needed for setup).  
 
-Or go to :  
-Settings > Devices & Sevices > Integrations > Add Integration, and search for "Pronote"
+Create the QR Code from your Pronote account:  
+![image](doc/generate_qr_code.png)
 
-Create the QR Code from your pronote account
-![image](https://github.com/vingerha/hass-pronote/assets/44190435/93d75362-b9ab-4844-abdf-0df771fd0602)
+Use the Chrome Extension to scan the current tab:  
+![image](doc/scan_qr_code.png)
 
-Scan it to get the json representation, e.g. 
-- with google lens (app on phone). example, copy the text and send by email, note that the code is valid for max 10 mins.
-- nip it from screen and upload here: https://nanonets.com/qr-code-scanner?ref=nanonets.com
+And copy the JSON ouput that looks like:
+```json
+{"jeton":"XXXXXXXXXXX[...]XXXXXXXXXXXXXX","login":"YYYYYYYYYYYYYY","url":"https://[id of your school].index-education.net/pronote/..."}
+```
 
-![image](https://github.com/vingerha/hass-pronote/assets/44190435/85d0385f-b4d3-45f2-8192-991eb7da8519)
+Paste it, and enter the PIN code used for the generation:  
+![image](doc/config_flow_qr_code.png)
 
-The json looks like:
-{"jeton":"AC671F...very long code ... 758B6F","login":"9B91...shorter code...AC0D","url":"https://[id of your school].index-education.net/pronote/mobile.eleve.html"}
+### Parent account
 
-Add a pronote entry
-
-![image](https://github.com/vingerha/hass-pronote/assets/44190435/88043fb7-3ac3-47c8-9ac8-5ce0f6bb0056)
-
-Use json, the pin with which you create the code and a random identifier
-
-![image](https://github.com/vingerha/hass-pronote/assets/44190435/76b68074-2815-46ac-bcdd-24b2299aa9cd)
-
-
-
-
-
-
-
-
+If using a Parent account, you'll have to select the child you want to add:  
+![image](doc/config_flow_parent.png)
 
 ## Usage
 
-This integration provides several sensors (where `LASTNAME` and `FIRSTNAME` are replaced):
-* `sensor.pronote_LASTNAME_FIRSTNAME`: basic informations about your child
-* `sensor.pronote_LASTNAME_FIRSTNAME_timetable_today`: today's timetable
-* `sensor.pronote_LASTNAME_FIRSTNAME_timetable_tomorrow`: tomorrow's timetable
-* `sensor.pronote_LASTNAME_FIRSTNAME_timetable_next_day`: next school day timetable
-* `sensor.pronote_LASTNAME_FIRSTNAME_timetable_period`: next school day timetable for next 15 days
-* `sensor.pronote_LASTNAME_FIRSTNAME_timetable_ical_url`: iCal URL for the timetable
-* `sensor.pronote_LASTNAME_FIRSTNAME_grades`: a list of the latest grades
-* `sensor.pronote_LASTNAME_FIRSTNAME_homework`: a list of your child's homework
-* `sensor.pronote_LASTNAME_FIRSTNAME_homework_period`: a list of your child's homework for max 15 days
-* `sensor.pronote_LASTNAME_FIRSTNAME_absences`: a list of your child's absences
-* `sensor.pronote_LASTNAME_FIRSTNAME_evaluations` a list of your child's evaluations
-* `sensor.pronote_LASTNAME_FIRSTNAME_averages` a list of your child's averages
-* `sensor.pronote_LASTNAME_FIRSTNAME_punishments` a list of your child's punishments
-* `sensor.pronote_LASTNAME_FIRSTNAME_delays` a list of your child's delays
-* `sensor.pronote_LASTNAME_FIRSTNAME_information_and_surveys` a list of your child's information_and_surveys
-* `sensor.pronote_LASTNAME_FIRSTNAME_menus` a list of your child's menus
+This integration provides several sensors, always prefixed with `pronote_LASTNAME_FIRSTNAME` (where `LASTNAME` and `FIRSTNAME` are replaced), for example `sensor.pronote_LASTNAME_FIRSTNAME_timetable_today`.
 
-The sensors above are updated every 15 minutes.
+
+| Sensor | Description |
+|--------|-------------|
+| `sensor.pronote_LASTNAME_FIRSTNAME` | basic informations about your child |
+| `[...]_timetable_today` | today's timetable |
+| `[...]_timetable_tomorrow` | tomorrow's timetable |
+| `[...]_timetable_next_day` | next school day timetable |
+| `[...]_timetable_period` | timetable for next 15 days |
+| `[...]_timetable_ical_url` | iCal URL for the timetable (if available) |
+| `[...]_grades` | latest grades |
+| `[...]_homework` | homework |
+| `[...]_homework_period` | homework for max 15 days |
+| `[...]_absences` | absences |
+| `[...]_evaluations` | evaluations |
+| `[...]_averages` | averages |
+| `[...]_punishments` | punishments |
+| `[...]_delays` | delays |
+| `[...]_information_and_surveys` | information_and_surveys |
+| `[...]_menus` | menus (if available) |
+
+The sensors are updated every 15 minutes.
