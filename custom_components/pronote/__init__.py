@@ -14,6 +14,27 @@ from .const import (
     PLATFORMS
 )
 
+_LOGGER = logging.getLogger(__name__)
+
+async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
+    """Migrate old entry."""
+    _LOGGER.debug("Migrating from version %s", config_entry.version)
+
+    if config_entry.version == 1:
+
+        new = {**config_entry.data}
+        new['connection_type'] = 'username_password'
+        new['qr_code_url'] = None
+        new['qr_code_username'] = None
+        new['qr_code_uuid'] = None
+
+        config_entry.version = 2
+        hass.config_entries.async_update_entry(config_entry, data=new)
+
+    _LOGGER.debug("Migration to version %s successful", config_entry.version)
+
+    return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Pronote from a config entry."""
