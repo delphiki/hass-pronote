@@ -87,6 +87,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 _LOGGER.debug("User Input: %s", user_input)
+                user_input['account_type'] = self._user_inputs['account_type']
                 self._user_inputs.update(user_input)
                 client = await self.hass.async_add_executor_job(get_client_from_username_password, self._user_inputs)
 
