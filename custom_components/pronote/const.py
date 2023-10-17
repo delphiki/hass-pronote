@@ -3,6 +3,8 @@
 from homeassistant.const import Platform
 
 DOMAIN = "pronote"
+EVENT_TYPE = "pronote_event"
+
 GRADES_TO_DISPLAY = 11
 HOMEWORK_DESC_MAX_LENGTH = 125
 LESSON_MAX_DAYS = 15

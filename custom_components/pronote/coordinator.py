@@ -7,7 +7,9 @@ from typing import Any
 import logging
 import pronotepy
 from .pronote_helper import *
+from .pronote_formatter import *
 import re
+import json
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -18,6 +20,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import (
     LESSON_MAX_DAYS,
     HOMEWORK_MAX_DAYS,
+    EVENT_TYPE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,6 +74,8 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
         self.config_entry = entry
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
+        previous_data = None if self.data is None else self.data.copy()
+
         data = self.config_entry.data
         self.data = {
             "account_type": data['account_type'],
@@ -99,6 +104,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.error('Unable to init pronote client')
             return None
 
+        # should be moved to pronote_helper but won't work
         if data['connection_type'] == 'qrcode':
             new_data = self.config_entry.data.copy()
             new_data.update({"qr_code_password": client.password})
@@ -118,8 +124,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             return None
 
         self.data['child_info'] = child_info
-        self.data['sensor_prefix'] = re.sub(
-            "[^A-Za-z]", "_", child_info.name.lower())
+        self.data['sensor_prefix'] = re.sub("[^A-Za-z]", "_", child_info.name.lower())
 
         try:
             lessons_today = await self.hass.async_add_executor_job(client.lessons, date.today())
@@ -163,68 +168,61 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             self.data['lessons_next_day'] = sorted(
                 lessons_nextday, key=lambda lesson: lesson.start)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting lessons_next_day from pronote: %s", ex)
+            _LOGGER.info("Error getting lessons_next_day from pronote: %s", ex)
 
         try:
             self.data['grades'] = await self.hass.async_add_executor_job(get_grades, client)
+            self.compare_data(previous_data, 'grades', ['date', 'subject', 'grade_out_of', 'class_average'], 'new_grade', format_grade)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting grades from pronote: %s", ex)
+            _LOGGER.info("Error getting grades from pronote: %s", ex)
 
         try:
             self.data['averages'] = await self.hass.async_add_executor_job(get_averages, client)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting averages from pronote: %s", ex)
+            _LOGGER.info("Error getting averages from pronote: %s", ex)
 
         try:
             homeworks = await self.hass.async_add_executor_job(client.homework, date.today())
             self.data['homework'] = sorted(
                 homeworks, key=lambda lesson: lesson.date)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting homework from pronote: %s", ex)
+            _LOGGER.info("Error getting homework from pronote: %s", ex)
 
         try:
             homework_period = await self.hass.async_add_executor_job(client.homework, date.today(), date.today() + timedelta(days=HOMEWORK_MAX_DAYS))
             self.data['homework_period'] = sorted(
                 homework_period, key=lambda homework: homework.date)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting homework_period from pronote: %s", ex)
+            _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
         try:
             information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys)
             self.data['information_and_surveys'] = sorted(
                 information_and_surveys, key=lambda information_and_survey: information_and_survey.creation_date, reverse=True)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting information_and_surveys from pronote: %s", ex)
+            _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
 
         try:
             self.data['absences'] = await self.hass.async_add_executor_job(get_absences, client)
+            self.compare_data(previous_data, 'absences', ['from', 'to'], 'new_absence', format_absence)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting absences from pronote: %s", ex)
+            _LOGGER.info("Error getting absences from pronote: %s", ex)
 
         try:
             self.data['delays'] = await self.hass.async_add_executor_job(get_delays, client)
+            self.compare_data(previous_data, 'delays', ['date', 'minutes'], 'new_delay', format_delay)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting delays from pronote: %s", ex)
+            _LOGGER.info("Error getting delays from pronote: %s", ex)
 
         try:
             self.data['evaluations'] = await self.hass.async_add_executor_job(get_evaluations, client)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting evaluations from pronote: %s", ex)
+            _LOGGER.info("Error getting evaluations from pronote: %s", ex)
 
         try:
             self.data['punishments'] = await self.hass.async_add_executor_job(get_punishments, client)
         except Exception as ex:
-            _LOGGER.info(
-                "Error getting punishments from pronote: %s", ex)
+            _LOGGER.info("Error getting punishments from pronote: %s", ex)
 
         try:
             self.data['ical_url'] = await self.hass.async_add_executor_job(client.export_ical)
@@ -237,3 +235,26 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.info("Error getting menus from pronote: %s", ex)
 
         return self.data
+
+    def compare_data(self, previous_data, data_key, compare_keys, event_type, format_func):
+        if previous_data is not None and previous_data[data_key] is not None and self.data[data_key] is not None:
+            not_found_items = []
+            for item in self.data[data_key]:
+                found = False
+                for previous_item in previous_data[data_key]:
+                    if {key: format_func(previous_item)[key] for key in compare_keys} == {key: format_func(item)[key] for key in compare_keys}:
+                        found = True
+                        break
+                if found is False:
+                    not_found_items.append(item)
+            for not_found_item in not_found_items:
+                self.trigger_event(event_type, format_func(not_found_item))
+
+    def trigger_event(self, event_type, event_data):
+        event_data = {
+            "child_name": self.data['child_info'].name,
+            "child_slug": self.data['sensor_prefix'],
+            "type": event_type,
+            "data": event_data
+        }
+        self.hass.bus.async_fire(EVENT_TYPE, event_data)
