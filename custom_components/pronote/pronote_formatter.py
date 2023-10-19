@@ -111,14 +111,11 @@ def format_evaluation(evaluation) -> dict:
         'acquisitions': [
             {
                 'order': acquisition.order,
-                'name_id': acquisition.name_id,
                 'name': acquisition.name,
                 'abbreviation': acquisition.abbreviation,
                 'level': acquisition.level,
-                'domain_id': acquisition.domain_id,
                 'domain': acquisition.domain,
                 'coefficient': acquisition.coefficient,
-                'pillar_id': acquisition.pillar_id,
                 'pillar': acquisition.pillar,
                 'pillar_prefix': acquisition.pillar_prefix,
             }
