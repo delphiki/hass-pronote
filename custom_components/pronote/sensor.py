@@ -17,8 +17,8 @@ from .pronote_formatter import *
 from .const import (
     DOMAIN,
     GRADES_TO_DISPLAY,
-    HOMEWORK_DESC_MAX_LENGTH,
-    EVALUATIONS_TO_DISPLAY
+    EVALUATIONS_TO_DISPLAY,
+    DEFAULT_LUNCH_BREAK_TIME
 )
 
 
@@ -143,6 +143,7 @@ class PronoteChildSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         return {
             "full_name": self._child_info.name,
+            "nickname": self.coordinator.config_entry.options.get('nickname'),
             "class_name": self._child_info.class_name,
             "establishment": self._child_info.establishment,
             "via_parent_account": self._account_type == 'parent',
@@ -160,6 +161,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         self._lessons = []
         self._start_at = None
         self._end_at = None
+        self._lunch_break_start_at = None
+        self._lunch_break_end_at = None
 
     @property
     def extra_state_attributes(self):
@@ -167,28 +170,46 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         self._lessons = self.coordinator.data['lessons_'+self._suffix]
         attributes = []
         canceled_counter = None
+        single_day = self._suffix in ['today', 'tomorrow', 'next_day']
+        lunch_break_time = datetime.strptime(
+            self.coordinator.config_entry.options.get('lunch_break_time', DEFAULT_LUNCH_BREAK_TIME),
+            '%H:%M'
+        ).time()
+
         if self._lessons is not None:
             self._start_at = None
             self._end_at = None
+            self._lunch_break_start_at = None
+            self._lunch_break_end_at = None
             canceled_counter = 0
-            single_day = self._suffix in ['today', 'tomorrow', 'next_day']
             for lesson in self._lessons:
                 index = self._lessons.index(lesson)
                 if not (lesson.start == self._lessons[index - 1].start and lesson.canceled is True):
-                    attributes.append(format_lesson(lesson))
+                    attributes.append(format_lesson(lesson, lunch_break_time))
                 if lesson.canceled is False and self._start_at is None:
                     self._start_at = lesson.start
                 if lesson.canceled is True:
                     canceled_counter += 1
                 if single_day is True and lesson.canceled is False:
                     self._end_at = lesson.end
-        return {
+                    if lesson.end.time() < lunch_break_time:
+                        self._lunch_break_start_at = lesson.end
+                    if self._lunch_break_end_at is None and lesson.start.time() >= lunch_break_time:
+                        self._lunch_break_end_at = lesson.start
+
+        result = {
             'updated_at': datetime.now(),
             'lessons': attributes,
+            'canceled_lessons_counter': canceled_counter,
             'day_start_at': self._start_at,
             'day_end_at': self._end_at,
-            'canceled_lessons_counter': canceled_counter
         }
+
+        if single_day is True:
+            result['lunch_break_start_at'] = self._lunch_break_start_at
+            result['lunch_break_end_at'] = self._lunch_break_end_at
+
+        return result
 
 
 def check_attr(value, output):

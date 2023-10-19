@@ -9,7 +9,6 @@ import pronotepy
 from .pronote_helper import *
 from .pronote_formatter import *
 import re
-import json
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -21,6 +20,7 @@ from .const import (
     LESSON_MAX_DAYS,
     HOMEWORK_MAX_DAYS,
     EVENT_TYPE,
+    DEFAULT_REFRESH_INTERVAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             hass=hass,
             logger=_LOGGER,
             name=entry.title,
-            update_interval=timedelta(minutes=15),
+            update_interval=timedelta(minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)),
         )
         self.config_entry = entry
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
@@ -253,6 +253,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
     def trigger_event(self, event_type, event_data):
         event_data = {
             "child_name": self.data['child_info'].name,
+            "child_nickname": self.config_entry.options.get('nickname'),
             "child_slug": self.data['sensor_prefix'],
             "type": event_type,
             "data": event_data

@@ -36,5 +36,18 @@
                 "description": "JSON du QR Code"
             }
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Personnalisez le fonctionnement de l'intégration",
+                "data": {
+                    "nickname": "Définissez un surnom pour votre enfant",
+                    "refresh_interval": "Intervale de mise à jour des données (en minutes)",
+                    "lunch_break_time": "Heure palier pour le calcul de la pause repas (HH:MM)",
+                    "alarm_offset": "Calcul de l'heure du réveil (en minutes, avant le premier cours du jour)"
+                }
+            }
+        }
     }
 }

@@ -7,16 +7,24 @@ import uuid
 
 import voluptuous as vol
 
+from datetime import time
+
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import callback
 
 import pronotepy
 from .pronote_helper import *
 
 from pronotepy.ent import *
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    DEFAULT_REFRESH_INTERVAL,
+    DEFAULT_ALARM_OFFSET,
+    DEFAULT_LUNCH_BREAK_TIME,
+)
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -169,6 +177,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("Parent Input UP: %s", self._user_inputs)
         return self.async_create_entry(title=children[user_input['child']]+" (via compte parent)", data=self._user_inputs)
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Create the options flow."""
+        return OptionsFlowHandler(config_entry)
 
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
@@ -176,3 +191,26 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("nickname", default=self.config_entry.options.get("nickname")): str,
+                    vol.Optional("refresh_interval", default=self.config_entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)): int,
+                    vol.Optional("lunch_break_time", default=self.config_entry.options.get("lunch_break_time", DEFAULT_LUNCH_BREAK_TIME)): str,
+                }
+            ),
+        )

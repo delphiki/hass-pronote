@@ -1,6 +1,7 @@
 """Data Formatter for the Pronote integration."""
 
 import logging
+from datetime import datetime
 
 from .const import (
     HOMEWORK_DESC_MAX_LENGTH,
@@ -15,7 +16,7 @@ def format_displayed_lesson(lesson):
         return lesson.subject.name
     return 'autre'
 
-def format_lesson(lesson):
+def format_lesson(lesson, lunch_break_time):
     return {
         'start_at': lesson.start,
         'end_at': lesson.end,
@@ -38,6 +39,8 @@ def format_lesson(lesson):
         'num': lesson.num,
         'detention': lesson.detention,
         'test': lesson.test,
+        'is_morning': lesson.start.time() < lunch_break_time,
+        'is_afternoon': lesson.start.time() >= lunch_break_time,
     }
 
 def format_attachment_list(attachments):
