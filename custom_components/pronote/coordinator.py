@@ -216,6 +216,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             self.data['evaluations'] = await self.hass.async_add_executor_job(get_evaluations, client)
+            self.compare_data(previous_data, 'evaluations', ['date', 'minutes'], 'new_evaluations', format_evaluation)
         except Exception as ex:
             _LOGGER.info("Error getting evaluations from pronote: %s", ex)
 
