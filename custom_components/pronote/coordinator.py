@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     LESSON_MAX_DAYS,
+    LESSON_NEXT_DAY_SEARCH_LIMIT,
     HOMEWORK_MAX_DAYS,
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
@@ -143,7 +144,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
                 "Error getting lessons_tomorrow from pronote: %s", ex)
 
         delta = LESSON_MAX_DAYS
-        while True:
+        while True and delta > 0:
             try:
                 lessons_period = await self.hass.async_add_executor_job(client.lessons, date.today(), date.today() + timedelta(days=delta))
             except Exception as ex:
@@ -160,7 +161,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             delta = 1
-            while True:
+            while True and delta < LESSON_NEXT_DAY_SEARCH_LIMIT:
                 lessons_nextday = await self.hass.async_add_executor_job(client.lessons, date.today() + timedelta(days=delta))
                 if lessons_nextday:
                     break
