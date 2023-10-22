@@ -180,10 +180,10 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
         if has_lessons_today or has_lessons_next_day:
             alarm_offset = self.config_entry.options.get("alarm_offset", DEFAULT_ALARM_OFFSET)
             if has_lessons_next_day:
-                next_day_alarm = self.data['lessons_next_day'][0].start - timedelta(minutes=alarm_offset)
+                next_day_alarm = get_day_start_at(self.data['lessons_next_day']) - timedelta(minutes=alarm_offset)
             if has_lessons_today:
-                todays_alarm = self.data['lessons_today'][0].start - timedelta(minutes=alarm_offset)
-                if todays_alarm <= datetime.now():
+                todays_alarm = get_day_start_at(self.data['lessons_today']) - timedelta(minutes=alarm_offset)
+                if todays_alarm is not None and todays_alarm <= datetime.now():
                     next_alarm = todays_alarm
             if next_alarm is None and next_day_alarm is not None:
                 next_alarm = next_day_alarm

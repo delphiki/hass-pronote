@@ -76,3 +76,11 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
 
     return client
 
+def get_day_start_at(lessons):
+    day_start_at = None
+    for lesson in lessons:
+        if not lesson.canceled:
+            day_start_at = lesson.start
+            break
+
+    return day_start_at
