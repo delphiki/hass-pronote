@@ -54,6 +54,7 @@ async def async_setup_entry(
         PronoteInformationAndSurveysSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
+        PronoteGenericSensor(coordinator, 'next_alarm', 'next_alarm'),
 
         PronoteMenusSensor(coordinator),
     ]

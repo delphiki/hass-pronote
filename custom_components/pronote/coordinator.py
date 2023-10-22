@@ -22,6 +22,7 @@ from .const import (
     HOMEWORK_MAX_DAYS,
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
+    DEFAULT_ALARM_OFFSET,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
             "punishments": None,
             "menus": None,
             "information_and_surveys": None,
+            "next_alarm": None,
         }
 
         client = await self.hass.async_add_executor_job(get_pronote_client, data)
@@ -170,6 +172,23 @@ class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
                 lessons_nextday, key=lambda lesson: lesson.start)
         except Exception as ex:
             _LOGGER.info("Error getting lessons_next_day from pronote: %s", ex)
+
+
+        next_alarm = None
+        has_lessons_today = self.data['lessons_today'] is not None and len(self.data['lessons_today']) > 0
+        has_lessons_next_day = self.data['lessons_next_day'] is not None and len(self.data['lessons_next_day']) > 0
+        if has_lessons_today or has_lessons_next_day:
+            alarm_offset = self.config_entry.options.get("alarm_offset", DEFAULT_ALARM_OFFSET)
+            if has_lessons_next_day:
+                next_day_alarm = self.data['lessons_next_day'][0].start - timedelta(minutes=alarm_offset)
+            if has_lessons_today:
+                todays_alarm = self.data['lessons_today'][0].start - timedelta(minutes=alarm_offset)
+                if todays_alarm <= datetime.now():
+                    next_alarm = todays_alarm
+            if next_alarm is None and next_day_alarm is not None:
+                next_alarm = next_day_alarm
+
+        self.data['next_alarm'] = next_alarm
 
         try:
             self.data['grades'] = await self.hass.async_add_executor_job(get_grades, client)

@@ -211,6 +211,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional("nickname", default=self.config_entry.options.get("nickname")): str,
                     vol.Optional("refresh_interval", default=self.config_entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)): int,
                     vol.Optional("lunch_break_time", default=self.config_entry.options.get("lunch_break_time", DEFAULT_LUNCH_BREAK_TIME)): str,
+                    vol.Optional("alarm_offset", default=self.config_entry.options.get("alarm_offset", DEFAULT_ALARM_OFFSET)): int,
                 }
             ),
         )
