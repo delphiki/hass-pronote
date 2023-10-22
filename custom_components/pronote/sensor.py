@@ -93,14 +93,16 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
             return 'unavailable'
         elif self._state == 'len':
             return len(self.coordinator.data[self._coordinator_key])
-        else:
+        elif self._state is not None:
             return self._state
+        else:
+            return self.coordinator.data[self._coordinator_key]
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         return {
-            'updated_at': datetime.now()
+            'updated_at': self.coordinator.last_update_success
         }
 
     @property
