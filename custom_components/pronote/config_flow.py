@@ -68,7 +68,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
     pronote_client = None
-    _user_inputs: dict = {}
+
+    def __init__(self) -> None:
+        self._user_inputs: dict = {}
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle a flow initialized by the user."""
