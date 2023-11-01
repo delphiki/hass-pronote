@@ -151,7 +151,7 @@ def format_punishment(punishment) -> dict:
         'giver': punishment.giver,
         'schedule': [{
             'start': schedule.start,
-            'duration': schedule.duration.total_seconds(),
+            'duration': str(schedule.duration),
         } for schedule in punishment.schedule],
         'schedulable': punishment.schedulable,
     }
