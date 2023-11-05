@@ -5,13 +5,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
+from datetime import timedelta
+
 import logging
 
 from .coordinator import PronoteDataUpdateCoordinator
 
 from .const import (
     DOMAIN,
-    PLATFORMS
+    PLATFORMS,
+    DEFAULT_REFRESH_INTERVAL
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,6 +65,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return unload_ok
 
-async def update_listener(hass, entry):
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    hass.data[DOMAIN][entry.entry_id]['coordinator'].update_interval = timedelta(minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL))
+
+    return True
