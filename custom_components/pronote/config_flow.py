@@ -210,7 +210,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional("nickname", default=self.config_entry.options.get("nickname")): str,
+                    vol.Optional("nickname", default=self.config_entry.options.get("nickname")): vol.All(vol.Coerce(str), vol.Length(min=0)),
                     vol.Optional("refresh_interval", default=self.config_entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)): int,
                     vol.Optional("lunch_break_time", default=self.config_entry.options.get("lunch_break_time", DEFAULT_LUNCH_BREAK_TIME)): str,
                     vol.Optional("alarm_offset", default=self.config_entry.options.get("alarm_offset", DEFAULT_ALARM_OFFSET)): int,
