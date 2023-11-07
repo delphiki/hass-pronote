@@ -13,7 +13,7 @@ import re
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
 
 from .const import (
@@ -58,7 +58,7 @@ def get_evaluations(client):
     return sorted(evaluations, key=lambda evaluation: (evaluation.date), reverse=True)
 
 
-class PronoteDataUpdateCoordinator(DataUpdateCoordinator):
+class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     """Data update coordinator for the Pronote integration."""
 
     config_entry: ConfigEntry

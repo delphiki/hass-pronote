@@ -103,7 +103,7 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         return {
-            'updated_at': self.coordinator.last_update_success
+            'updated_at': self.coordinator.last_update_success_time
         }
 
     @property
@@ -150,7 +150,7 @@ class PronoteChildSensor(CoordinatorEntity, SensorEntity):
             "class_name": self._child_info.class_name,
             "establishment": self._child_info.establishment,
             "via_parent_account": self._account_type == 'parent',
-            "updated_at": datetime.now()
+            "updated_at": self.coordinator.last_update_success_time
         }
 
 
@@ -201,7 +201,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                         self._lunch_break_end_at = lesson.start
 
         result = {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'lessons': attributes,
             'canceled_lessons_counter': canceled_counter,
             'day_start_at': self._start_at,
@@ -240,7 +240,7 @@ class PronoteGradesSensor(PronoteGenericSensor):
                 attributes.append(format_grade(grade))
 
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'grades': attributes
         }
 
@@ -266,7 +266,7 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
                     todo_counter += 1
 
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'homework': attributes,
             'todo_counter': todo_counter
         }
@@ -288,7 +288,7 @@ class PronoteAbsensesSensor(PronoteGenericSensor):
                 attributes.append(format_absence(absence))
 
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'absences': attributes
         }
 
@@ -309,7 +309,7 @@ class PronoteDelaysSensor(PronoteGenericSensor):
                 attributes.append(format_delay(delay))
 
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'delays': attributes
         }
 
@@ -334,7 +334,7 @@ class PronoteEvaluationsSensor(PronoteGenericSensor):
                 attributes.append(format_evaluation(evaluation))
 
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'evaluations': attributes
         }
 
@@ -354,7 +354,7 @@ class PronoteAveragesSensor(PronoteGenericSensor):
             for average in self.coordinator.data['averages']:
                 attributes.append(format_average(average))
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'averages': attributes
         }
 
@@ -374,7 +374,7 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
             for punishment in self.coordinator.data['punishments']:
                 attributes.append(format_punishment(punishment))
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'punishments': attributes
         }
 
@@ -394,7 +394,7 @@ class PronoteMenusSensor(PronoteGenericSensor):
             for menu in self.coordinator.data['menus']:
                 attributes.append(format_menu(menu))
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'menus': attributes
         }
 
@@ -418,7 +418,7 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
                 if information_and_survey.read is False:
                     unread_count += 1
         return {
-            'updated_at': datetime.now(),
+            'updated_at': self.coordinator.last_update_success_time,
             'unread_count': unread_count,
             'information_and_surveys': attributes
         }
