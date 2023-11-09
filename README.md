@@ -32,12 +32,12 @@ Use your Pronote URL with username, password and ENT (optional):
 
 ### Option 2: using the QR Code
 
-Install the following Chrome Extension: [QR Code Scanner for Google Chrome™](https://chrome.google.com/webstore/detail/qr-code-scanner-for-googl/mcgfkahjhghbjdgiibjfkgpenehdldpg/related?hl=en) (only needed for setup).  
+Install the following Chrome Extension: [QR Code Reader](https://chrome.google.com/webstore/detail/qr-code-reader/likadllkkidlligfcdhfnnbkjigdkmci) (only needed for setup).  
 
 Create the QR Code from your Pronote account:  
 ![image](doc/generate_qr_code.png)
 
-Use the Chrome Extension to scan the current tab:  
+Use the extension to scan the QR Code:  
 ![image](doc/scan_qr_code.png)
 
 And copy the JSON ouput that looks like:
