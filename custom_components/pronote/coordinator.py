@@ -175,18 +175,16 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
 
         next_alarm = None
-        has_lessons_today = self.data['lessons_today'] is not None and len(self.data['lessons_today']) > 0
-        has_lessons_next_day = self.data['lessons_next_day'] is not None and len(self.data['lessons_next_day']) > 0
-        if has_lessons_today or has_lessons_next_day:
+        today_start_at = get_day_start_at(self.data['lessons_today'])
+        next_day_start_at = get_day_start_at(self.data['lessons_next_day'])
+        if today_start_at or next_day_start_at:
             alarm_offset = self.config_entry.options.get("alarm_offset", DEFAULT_ALARM_OFFSET)
-            if has_lessons_next_day:
-                next_day_alarm = get_day_start_at(self.data['lessons_next_day']) - timedelta(minutes=alarm_offset)
-            if has_lessons_today:
-                todays_alarm = get_day_start_at(self.data['lessons_today']) - timedelta(minutes=alarm_offset)
-                if todays_alarm is not None and todays_alarm <= datetime.now():
+            if today_start_at is not None:
+                todays_alarm = today_start_at - timedelta(minutes=alarm_offset)
+                if datetime.now() <= todays_alarm:
                     next_alarm = todays_alarm
-            if next_alarm is None and next_day_alarm is not None:
-                next_alarm = next_day_alarm
+            if next_alarm is None and next_day_start_at is not None:
+                next_alarm = next_day_start_at - timedelta(minutes=alarm_offset)
 
         self.data['next_alarm'] = next_alarm
 
