@@ -5,9 +5,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
 from homeassistant.components.sensor import SensorEntity
 
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from datetime import datetime
 
