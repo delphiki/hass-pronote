@@ -190,7 +190,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         try:
             self.data['grades'] = await self.hass.async_add_executor_job(get_grades, client)
-            self.compare_data(previous_data, 'grades', ['date', 'subject', 'grade_out_of', 'class_average'], 'new_grade', format_grade)
+            self.compare_data(previous_data, 'grades', ['date', 'subject', 'grade_out_of'], 'new_grade', format_grade)
         except Exception as ex:
             _LOGGER.info("Error getting grades from pronote: %s", ex)
 
