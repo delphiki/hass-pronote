@@ -61,6 +61,46 @@ async def async_setup_entry(
 
     async_add_entities(sensors, False)
 
+class PronoteChildSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator)
+        self._child_info = coordinator.data['child_info']
+        self._account_type = coordinator.data['account_type']
+        self._attr_unique_id = f"pronote-{self.coordinator.data['sensor_prefix']}-identity"
+        self._attr_device_info = DeviceInfo(
+            name=f"Pronote - {self.coordinator.data['child_info'].name}",
+            entry_type=DeviceEntryType.SERVICE,
+            identifiers={
+                (DOMAIN, f"Pronote - {self.coordinator.data['child_info'].name}")
+            },
+            manufacturer="Pronote",
+            model=self.coordinator.data['child_info'].name,
+        )
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return self._child_info.name
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        return {
+            "full_name": self._child_info.name,
+            "nickname": self.coordinator.config_entry.options.get('nickname'),
+            "class_name": self._child_info.class_name,
+            "establishment": self._child_info.establishment,
+            "via_parent_account": self._account_type == 'parent',
+            "updated_at": self.coordinator.last_update_success_time
+        }
 
 class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
@@ -109,50 +149,7 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data[self._coordinator_key]
-
-
-class PronoteChildSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Pronote sensor."""
-
-    def __init__(self, coordinator) -> None:
-        """Initialize the Pronote sensor."""
-        super().__init__(coordinator)
-        self._child_info = coordinator.data['child_info']
-        self._account_type = coordinator.data['account_type']
-        self._attr_unique_id = f"pronote-{self.coordinator.data['sensor_prefix']}-identity"
-        self._attr_device_info = DeviceInfo(
-            name=f"Pronote - {self.coordinator.data['child_info'].name}",
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={
-                (DOMAIN, f"Pronote - {self.coordinator.data['child_info'].name}")
-            },
-            manufacturer="Pronote",
-            model=self.coordinator.data['child_info'].name,
-        )
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}"
-
-    @property
-    def native_value(self):
-        """Return the state of the sensor."""
-        return self._child_info.name
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        return {
-            "full_name": self._child_info.name,
-            "nickname": self.coordinator.config_entry.options.get('nickname'),
-            "class_name": self._child_info.class_name,
-            "establishment": self._child_info.establishment,
-            "via_parent_account": self._account_type == 'parent',
-            "updated_at": self.coordinator.last_update_success_time
-        }
-
+        return self.coordinator.last_update_success and self.coordinator.data[self._coordinator_key] is not None
 
 class PronoteTimetableSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
