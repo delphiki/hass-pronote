@@ -20,6 +20,7 @@ from .const import (
     LESSON_MAX_DAYS,
     LESSON_NEXT_DAY_SEARCH_LIMIT,
     HOMEWORK_MAX_DAYS,
+    INFO_SURVEY_LIMIT_MAX_DAYS,
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
@@ -74,6 +75,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             update_interval=timedelta(minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)),
         )
         self.config_entry = entry
+
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
         previous_data = None if self.data is None else self.data.copy()
@@ -213,7 +215,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
         try:
-            information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys)
+            information_and_surveys = await self.hass.async_add_executor_job(client.information_and_surveys, date.today() - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS))
             self.data['information_and_surveys'] = sorted(
                 information_and_surveys, key=lambda information_and_survey: information_and_survey.creation_date, reverse=True)
         except Exception as ex:
