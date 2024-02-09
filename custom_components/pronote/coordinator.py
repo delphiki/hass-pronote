@@ -119,11 +119,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         if (data['account_type'] == 'parent'):
             client.set_child(data['child'])
-            candidates = pronotepy.dataClasses.Util.get(
-                client.children,
-                name=data['child']
-            )
-            child_info = candidates[0] if candidates else None
+            child_info = client._selected_child
 
         if child_info is None:
             return None

@@ -31,6 +31,7 @@ def get_client_from_username_password(data) -> pronotepy.Client | pronotepy.Pare
             data['password'],
             ent
         )
+        del ent
         _LOGGER.info(client.info.name)
     except Exception as err:
         _LOGGER.critical(err)
@@ -67,14 +68,12 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
     _LOGGER.info(f"Coordinator uses qr_code_username: {qr_code_username}")
     _LOGGER.info(f"Coordinator uses qr_code_pwd: {qr_code_password}")
 
-    client = (pronotepy.ParentClient if data['account_type'] == 'parent' else pronotepy.Client).token_login(
+    return (pronotepy.ParentClient if data['account_type'] == 'parent' else pronotepy.Client).token_login(
         qr_code_url,
         qr_code_username,
         qr_code_password,
         qr_code_uuid
     )
-
-    return client
 
 def get_day_start_at(lessons):
     day_start_at = None

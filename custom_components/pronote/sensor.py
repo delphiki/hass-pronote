@@ -31,8 +31,6 @@ async def async_setup_entry(
         config_entry.entry_id
     ]["coordinator"]
 
-    await coordinator.async_config_entry_first_refresh()
-
     sensors = [
         PronoteChildSensor(coordinator),
 
