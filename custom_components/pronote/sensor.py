@@ -2,8 +2,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+)
 
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -20,7 +22,6 @@ from .const import (
     EVALUATIONS_TO_DISPLAY,
     DEFAULT_LUNCH_BREAK_TIME
 )
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -52,7 +53,7 @@ async def async_setup_entry(
         PronoteInformationAndSurveysSensor(coordinator),
 
         PronoteGenericSensor(coordinator, 'ical_url', 'timetable_ical_url'),
-        PronoteGenericSensor(coordinator, 'next_alarm', 'next_alarm'),
+        PronoteGenericSensor(coordinator, 'next_alarm', 'next_alarm', None, SensorDeviceClass.TIMESTAMP),
 
         PronoteMenusSensor(coordinator),
     ]
@@ -103,7 +104,7 @@ class PronoteChildSensor(CoordinatorEntity, SensorEntity):
 class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator, coordinator_key: str, name: str, state: str = None) -> None:
+    def __init__(self, coordinator, coordinator_key: str, name: str, state: str = None, device_class: str = None) -> None:
         """Initialize the Pronote sensor."""
         super().__init__(coordinator)
         self._coordinator_key = coordinator_key
@@ -119,6 +120,8 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
             manufacturer="Pronote",
             model=self.coordinator.data['child_info'].name,
         )
+        if (device_class is not None):
+            self._attr_device_class = device_class
 
     @property
     def name(self):

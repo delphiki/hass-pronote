@@ -5,10 +5,10 @@ from datetime import date, timedelta
 from typing import Any
 
 import logging
-import pronotepy
 from .pronote_helper import *
 from .pronote_formatter import *
 import re
+import pytz
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -170,6 +170,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting lessons_next_day from pronote: %s", ex)
 
         next_alarm = None
+        tz = pytz.timezone(self.hass.config.time_zone)
         today_start_at = get_day_start_at(self.data['lessons_today'])
         next_day_start_at = get_day_start_at(self.data['lessons_next_day'])
         if today_start_at or next_day_start_at:
@@ -180,6 +181,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     next_alarm = todays_alarm
             if next_alarm is None and next_day_start_at is not None:
                 next_alarm = next_day_start_at - timedelta(minutes=alarm_offset)
+        if next_alarm is not None:
+            next_alarm = tz.localize(next_alarm)
 
         self.data['next_alarm'] = next_alarm
 
