@@ -78,3 +78,7 @@ This integration provides several sensors, always prefixed with `pronote_LASTNAM
 | `[...]_menus` | menus (if available) |
 
 The sensors are updated every 15 minutes.
+
+## Cards
+
+Cards are available here: https://github.com/delphiki/lovelace-pronote
