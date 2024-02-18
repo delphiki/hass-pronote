@@ -47,11 +47,15 @@ def get_averages(client):
     averages = client.current_period.averages
     return averages
 
-
 def get_punishments(client):
     punishments = client.current_period.punishments
     return sorted(punishments, key=lambda punishment: punishment.given.strftime("%Y-%m-%d"), reverse=True)
-
+    
+def get_punishments_year(client):
+    for period in client.periods:
+        if period.name == 'Année continue':
+            punishments = period.punishments
+    return sorted(punishments, key=lambda punishment: punishment.given.strftime("%Y-%m-%d"), reverse=True)
 
 def get_evaluations(client):
     evaluations = client.current_period.evaluations
@@ -98,6 +102,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "delays": [],
             "evaluations": [],
             "punishments": [],
+            "punishments_year": [],
             "menus": [],
             "information_and_surveys": [],
             "next_alarm": None,
@@ -246,6 +251,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         except Exception as ex:
             self.data['punishments'] = None
             _LOGGER.info("Error getting punishments from pronote: %s", ex)
+            
+        try:
+            self.data['punishments_year'] = await self.hass.async_add_executor_job(get_punishments_year, client)
+        except Exception as ex:
+            self.data['punishments_year'] = None
+            _LOGGER.info("Error getting annual punishments from pronote: %s", ex)
 
         try:
             self.data['ical_url'] = await self.hass.async_add_executor_job(client.export_ical)

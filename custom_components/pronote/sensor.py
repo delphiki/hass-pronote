@@ -49,6 +49,7 @@ async def async_setup_entry(
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
+        PronotePunishmentsYearSensor(coordinator),
         PronoteDelaysSensor(coordinator),
         PronoteInformationAndSurveysSensor(coordinator),
 
@@ -375,6 +376,25 @@ class PronotePunishmentsSensor(PronoteGenericSensor):
             'updated_at': self.coordinator.last_update_success_time,
             'punishments': attributes
         }
+        
+class PronotePunishmentsYearSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, 'punishments_year', 'punishments_year', 'len')
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        if self.coordinator.data['punishments_year'] is not None:
+            for punishment in self.coordinator.data['punishments_year']:
+                attributes.append(format_punishment(punishment))
+        return {
+            'updated_at': self.coordinator.last_update_success_time,
+            'punishments_year': attributes
+        }        
 
 
 class PronoteMenusSensor(PronoteGenericSensor):
