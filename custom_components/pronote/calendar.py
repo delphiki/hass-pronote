@@ -84,10 +84,14 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         try:
+            lessons = self.coordinator.data['lessons_period']
+            if lessons is None:
+                return None
+
             now = datetime.now()
             current_event = next(
                 event
-                for event in self.coordinator.data['lessons_period']
+                for event in lessons
                 if event.start >= now and now < event.end
             )
         except StopIteration:

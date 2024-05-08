@@ -197,6 +197,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                         self._lunch_break_start_at = lesson.end
                     if self._lunch_break_end_at is None and lesson.start.time() >= lunch_break_time:
                         self._lunch_break_end_at = lesson.start
+            self._lessons = []
 
         result = {
             'updated_at': self.coordinator.last_update_success_time,
@@ -211,12 +212,6 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             result['lunch_break_end_at'] = self._lunch_break_end_at
 
         return result
-
-
-def check_attr(value, output):
-    if value is not None:
-        return output
-    return None
 
 class PronoteGradesSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
