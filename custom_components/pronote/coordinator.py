@@ -158,7 +158,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         _LOGGER.debug(f"Lessons found at: {delta} days, for a maximum of {LESSON_MAX_DAYS} from today")
         self.data['lessons_period'] = sorted(lessons_period, key=lambda lesson: lesson.start) if lessons_period is not None else None
 
-        if self.data['lessons_tomorrow'] is not None:
+        if self.data['lessons_tomorrow'] is not None and len(self.data['lessons_tomorrow']) > 0:
             self.data['lessons_next_day'] = self.data['lessons_tomorrow']
         else:
             try:
