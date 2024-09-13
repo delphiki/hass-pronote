@@ -32,9 +32,12 @@ def get_client_from_username_password(data) -> pronotepy.Client | pronotepy.Pare
     try:
         client = (pronotepy.ParentClient if data['account_type'] == 'parent' else pronotepy.Client)(
             url,
-            data['username'],
-            data['password'],
-            ent
+            username=data['username'],
+            password=data['password'],
+            account_pin=data.get('account_pin', None),
+            device_name=data.get('device_name', None),
+            client_identifier=data.get('client_identifier', None),
+            ent=ent
         )
         del ent
         _LOGGER.info(client.info.name)

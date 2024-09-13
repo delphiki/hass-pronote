@@ -32,7 +32,9 @@
                     "ent": "Ent",
                     "password": "Password",
                     "url": "URL",
-                    "username": "Username"
+                    "username": "Username",
+                    "device_name": "Device name",
+                    "account_pin": "Account PIN"
                 }
             }
         }

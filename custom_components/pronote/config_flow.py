@@ -51,6 +51,8 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
         vol.Required("url"): str,
         vol.Required("username"): str,
         vol.Required("password"): str,
+        vol.Optional("device_name"): str,
+        vol.Optional("account_pin"): str,
         vol.Optional("ent"): vol.In(get_ent_list())
     }
 )
