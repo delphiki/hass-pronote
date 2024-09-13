@@ -25,7 +25,9 @@
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
-                    "username": "Identifiant"
+                    "username": "Identifiant",
+                    "device_name": "Nom de l'appareil",
+                    "account_pin": "PIN du compte"
                 }
             },
             "qr_code_login": {

@@ -51,14 +51,18 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
         vol.Required("url"): str,
         vol.Required("username"): str,
         vol.Required("password"): str,
-        vol.Optional("ent"): vol.In(get_ent_list())
+        vol.Optional("ent"): vol.In(get_ent_list()),
+        vol.Optional("device_name"): str,
+        vol.Optional("account_pin"): str
     }
 )
 
 STEP_USER_DATA_SCHEMA_QR = vol.Schema(
     {
         vol.Required("qr_code_json"): str,
-        vol.Required("qr_code_pin"): str
+        vol.Required("qr_code_pin"): str,
+        vol.Optional("device_name"): str,
+        vol.Optional("account_pin"): str
     }
 )
 
