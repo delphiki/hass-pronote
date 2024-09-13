@@ -3,6 +3,7 @@
 import pronotepy
 import json
 import logging
+import re
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,7 +16,11 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
         return get_client_from_username_password(data)
 
 def get_client_from_username_password(data) -> pronotepy.Client | pronotepy.ParentClient | None:
-    url = data['url'] + ('parent' if data['account_type'] == 'parent' else 'eleve') + '.html'
+    url = data['url']
+    url = re.sub(r'/[^/]+\.html$', '/', url)
+    if not url.endswith('/'):
+        url += '/'
+    url = url + ('parent' if data['account_type'] == 'parent' else 'eleve') + '.html'
 
     ent = None
     if 'ent' in data:
