@@ -38,7 +38,7 @@ def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
 
     return CalendarEvent(
         summary=lesson_name,
-        description=f"{lesson.teacher_name}",
+        description=f"{lesson.teacher_name} - Salle {lesson.classroom}",
         location=f"Salle {lesson.classroom}",
         start=tz.localize(lesson.start),
         end=tz.localize(lesson.end),
