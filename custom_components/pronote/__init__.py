@@ -1,4 +1,5 @@
 """The Pronote integration."""
+
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
@@ -11,13 +12,10 @@ import logging
 
 from .coordinator import PronoteDataUpdateCoordinator
 
-from .const import (
-    DOMAIN,
-    PLATFORMS,
-    DEFAULT_REFRESH_INTERVAL
-)
+from .const import DOMAIN, PLATFORMS, DEFAULT_REFRESH_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
     """Migrate old entry."""
@@ -26,7 +24,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
     if config_entry.version == 1:
 
         new = {**config_entry.data}
-        new['connection_type'] = 'username_password'
+        new["connection_type"] = "username_password"
 
         config_entry.version = 2
         hass.config_entries.async_update_entry(config_entry, data=new)
@@ -65,8 +63,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return unload_ok
 
+
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Handle options update."""
-    hass.data[DOMAIN][entry.entry_id]['coordinator'].update_interval = timedelta(minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL))
+    hass.data[DOMAIN][entry.entry_id]["coordinator"].update_interval = timedelta(
+        minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
+    )
 
     return True

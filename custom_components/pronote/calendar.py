@@ -11,12 +11,13 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .coordinator import PronoteDataUpdateCoordinator
 from .pronote_formatter import format_displayed_lesson
 
-from .const import (
-    DOMAIN
-)
+from .const import DOMAIN
+
 
 async def async_setup_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up ReCollect Waste sensors based on a config entry."""
     coordinator: PronoteDataUpdateCoordinator = hass.data[DOMAIN][
@@ -26,6 +27,7 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     async_add_entities([PronoteCalendar(coordinator, config_entry)], False)
+
 
 @callback
 def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
@@ -44,6 +46,7 @@ def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
         end=tz.localize(lesson.end),
     )
 
+
 class PronoteCalendar(CoordinatorEntity, CalendarEntity):
 
     def __init__(
@@ -54,10 +57,10 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
         """Initialize the ReCollect Waste entity."""
         super().__init__(coordinator, entry)
 
-        child_info = coordinator.data['child_info']
+        child_info = coordinator.data["child_info"]
         calendar_name = child_info.name
-        nickname = self.coordinator.config_entry.options.get('nickname', '')
-        if nickname != '':
+        nickname = self.coordinator.config_entry.options.get("nickname", "")
+        if nickname != "":
             calendar_name = nickname
 
         self._attr_translation_key = "timetable"
@@ -71,7 +74,7 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
                 (DOMAIN, f"Pronote - {self.coordinator.data['child_info'].name}")
             },
             manufacturer="Pronote",
-            model=self.coordinator.data['child_info'].name,
+            model=self.coordinator.data["child_info"].name,
         )
         self._event: CalendarEvent | None = None
 
@@ -84,15 +87,13 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         try:
-            lessons = self.coordinator.data['lessons_period']
+            lessons = self.coordinator.data["lessons_period"]
             if lessons is None:
                 return None
 
             now = datetime.now()
             current_event = next(
-                event
-                for event in lessons
-                if event.start >= now and now < event.end
+                event for event in lessons if event.start >= now and now < event.end
             )
         except StopIteration:
             self._event = None
@@ -112,5 +113,8 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
         """Return calendar events within a datetime range."""
         return [
             async_get_calendar_event_from_lessons(event, hass.config.time_zone)
-            for event in filter(lambda lesson: lesson.canceled == False, self.coordinator.data['lessons_period'])
+            for event in filter(
+                lambda lesson: lesson.canceled == False,
+                self.coordinator.data["lessons_period"],
+            )
         ]
