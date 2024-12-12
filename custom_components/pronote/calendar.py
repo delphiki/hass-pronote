@@ -5,7 +5,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.util.dt import get_time_zone
-import pytz
+from zoneinfo import ZoneInfo
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .coordinator import PronoteDataUpdateCoordinator
@@ -32,7 +32,7 @@ async def async_setup_entry(
 @callback
 def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
     """Get a HASS CalendarEvent from a Pronote Lesson."""
-    tz = pytz.timezone(timezone)
+    tz = ZoneInfo(timezone)
 
     lesson_name = format_displayed_lesson(lesson)
     if lesson.canceled:
@@ -42,8 +42,8 @@ def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
         summary=lesson_name,
         description=f"{lesson.teacher_name} - Salle {lesson.classroom}",
         location=f"Salle {lesson.classroom}",
-        start=tz.localize(lesson.start),
-        end=tz.localize(lesson.end),
+        start=lesson.start.replace(tzinfo=tz),
+        end=lesson.end.replace(tzinfo=tz),
     )
 
 
