@@ -171,7 +171,6 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         """Initialize the Pronote sensor."""
         super().__init__(coordinator, "lessons_" + suffix, "timetable_" + suffix, "len")
         self._suffix = suffix
-        self._lessons = []
         self._start_at = None
         self._end_at = None
         self._lunch_break_start_at = None
@@ -180,7 +179,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        self._lessons = self.coordinator.data["lessons_" + self._suffix]
+        lessons = self.coordinator.data["lessons_" + self._suffix]
         attributes = []
         canceled_counter = None
         single_day = self._suffix in ["today", "tomorrow", "next_day"]
@@ -191,16 +190,16 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             "%H:%M",
         ).time()
 
-        if self._lessons is not None:
+        if lessons is not None:
             self._start_at = None
             self._end_at = None
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in self._lessons:
-                index = self._lessons.index(lesson)
+            for lesson in lessons:
+                index = lessons.index(lesson)
                 if not (
-                    lesson.start == self._lessons[index - 1].start
+                    lesson.start == lessons[index - 1].start
                     and lesson.canceled is True
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
@@ -217,7 +216,6 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                         and lesson.start.time() >= lunch_break_time
                     ):
                         self._lunch_break_end_at = lesson.start
-            self._lessons = []
 
         result = {
             "updated_at": self.coordinator.last_update_success_time,

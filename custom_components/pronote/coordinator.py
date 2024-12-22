@@ -81,6 +81,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             ),
         )
         self.config_entry = entry
+        self._client = None
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
