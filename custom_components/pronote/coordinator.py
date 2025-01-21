@@ -31,7 +31,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def get_grades(client):
-    grades = client.current_period.grades
+    grades = []
+    for period in client.periods:
+        for grade in period.grades:
+            if grade not in grades:
+                grades.append(grade)
     return sorted(grades, key=lambda grade: grade.date, reverse=True)
 
 
@@ -46,7 +50,11 @@ def get_delays(client):
 
 
 def get_averages(client):
-    averages = client.current_period.averages
+    averages = []
+    for period in client.periods:
+        for average in period.averages:
+            if average not in averages:
+                averages.append(average)
     return averages
 
 
@@ -273,11 +281,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["homework_period"] = None
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
+      
         # Information and Surveys
         try:
             information_and_surveys = await self.hass.async_add_executor_job(
                 client.information_and_surveys,
-                today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),
+                datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),datetime.min.time()),
             )
             self.data["information_and_surveys"] = sorted(
                 information_and_surveys,
