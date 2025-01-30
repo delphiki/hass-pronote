@@ -47,15 +47,19 @@ def get_absences(client):
 def get_delays(client):
     delays = client.current_period.delays
     return sorted(delays, key=lambda delay: delay.date, reverse=True)
-
-
+    
 def get_averages(client):
-    averages = []
-    for period in client.periods:
-        for average in period.averages:
-            if average not in averages:
-                averages.append(average)
+    averages = client.current_period.averages
     return averages
+
+def get_period_averages(client):
+    period_averages = {}
+    for period in client.periods:
+        averages = []
+        for average in period.averages:          
+            averages.append(format_average(average))
+        period_averages[period.name] = averages
+    return period_averages
 
 
 def get_punishments(client):
@@ -108,6 +112,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "ical_url": None,
             "grades": [],
             "averages": [],
+            "period_averages":[],
             "homework": [],
             "homework_period": [],
             "absences": [],
@@ -258,8 +263,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["averages"] = await self.hass.async_add_executor_job(
                 get_averages, client
             )
+            self.data["period_averages"] = await self.hass.async_add_executor_job(
+                get_period_averages, client
+            )
         except Exception as ex:
             self.data["averages"] = None
+            self.data["period_averages"] = None
             _LOGGER.info("Error getting averages from pronote: %s", ex)
 
         # Homework
