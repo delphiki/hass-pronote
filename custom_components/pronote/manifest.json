@@ -9,7 +9,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/delphiki/hass-pronote/issues",
   "requirements": [
-    "pronotepy==2.14.2"
+    "pronotepy==2.14.3"
   ],
   "version": "0.15.4"
 }
