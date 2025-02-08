@@ -31,7 +31,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def get_grades(client):
-    grades = client.current_period.grades
+    grades = []
+    for period in client.periods:
+        for grade in period.grades:
+            if grade not in grades:
+                grades.append(grade)
     return sorted(grades, key=lambda grade: grade.date, reverse=True)
 
 
@@ -43,11 +47,19 @@ def get_absences(client):
 def get_delays(client):
     delays = client.current_period.delays
     return sorted(delays, key=lambda delay: delay.date, reverse=True)
-
-
+    
 def get_averages(client):
     averages = client.current_period.averages
     return averages
+
+def get_period_averages(client):
+    period_averages = {}
+    for period in client.periods:
+        averages = []
+        for average in period.averages:          
+            averages.append(format_average(average))
+        period_averages[period.name] = averages
+    return period_averages
 
 
 def get_punishments(client):
@@ -100,6 +112,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "ical_url": None,
             "grades": [],
             "averages": [],
+            "period_averages":[],
             "homework": [],
             "homework_period": [],
             "absences": [],
@@ -250,8 +263,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["averages"] = await self.hass.async_add_executor_job(
                 get_averages, client
             )
+            self.data["period_averages"] = await self.hass.async_add_executor_job(
+                get_period_averages, client
+            )
         except Exception as ex:
             self.data["averages"] = None
+            self.data["period_averages"] = None
             _LOGGER.info("Error getting averages from pronote: %s", ex)
 
         # Homework
@@ -273,11 +290,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["homework_period"] = None
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
+      
         # Information and Surveys
         try:
             information_and_surveys = await self.hass.async_add_executor_job(
                 client.information_and_surveys,
-                today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),
+                datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),datetime.min.time()),
             )
             self.data["information_and_surveys"] = sorted(
                 information_and_surveys,

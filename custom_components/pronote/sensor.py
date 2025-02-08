@@ -22,6 +22,8 @@ from .const import (
     EVALUATIONS_TO_DISPLAY,
     DEFAULT_LUNCH_BREAK_TIME,
 )
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -45,6 +47,7 @@ async def async_setup_entry(
         PronoteAbsensesSensor(coordinator),
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
+        PronotePeriodAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
         PronoteInformationAndSurveysSensor(coordinator),
@@ -369,6 +372,25 @@ class PronoteAveragesSensor(PronoteGenericSensor):
             "updated_at": self.coordinator.last_update_success_time,
             "averages": attributes,
         }
+        
+class PronotePeriodAveragesSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, "period_averages", "period_averages", "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        _LOGGER.info("coordinator data: %s", self.coordinator.data)
+        if self.coordinator.data["period_averages"] is not None:
+            attributes.append(self.coordinator.data["period_averages"])
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "period_averages": attributes,
+        }        
 
 
 class PronotePunishmentsSensor(PronoteGenericSensor):
