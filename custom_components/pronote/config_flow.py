@@ -146,15 +146,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             else:
+                self.pronote_client = client
+
                 if user_input["account_type"] == "parent":
                     _LOGGER.debug("_User Inputs UP Parent: %s", self._user_inputs)
-                    self.pronote_client = client
                     return await self.async_step_parent()
 
-                _LOGGER.debug("_User Inputs UP: %s", self._user_inputs)
-                return self.async_create_entry(
-                    title=client.info.name, data=self._user_inputs
-                )
+                return await self.async_step_nickname()
 
         return self.async_show_form(
             step_id="username_password_login",
@@ -188,13 +186,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._user_inputs["qr_code_password"] = client.password
                 self._user_inputs["qr_code_uuid"] = client.uuid
 
+                self.pronote_client = client
+
                 if self._user_inputs["account_type"] == "parent":
-                    self.pronote_client = client
                     return await self.async_step_parent()
 
-                return self.async_create_entry(
-                    title=client.info.name, data=self._user_inputs
-                )
+                return await self.async_step_nickname()
 
         return self.async_show_form(
             step_id="qr_code_login", data_schema=STEP_USER_DATA_SCHEMA_QR, errors=errors
@@ -223,9 +220,38 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._user_inputs["child"] = user_input["child"]
         _LOGGER.debug("Parent Input UP: %s", self._user_inputs)
-        return self.async_create_entry(
-            title=children[user_input["child"]] + " (via compte parent)",
-            data=self._user_inputs,
+        return await self.async_step_nickname()
+
+    async def async_step_nickname(self, user_input: dict | None = None) -> FlowResult:
+        """Handle nickname step."""
+
+        child_name = self.pronote_client.info.name
+        title = child_name
+        if self._user_inputs.get("account_type") == "parent":
+            child_name = self._user_inputs["child"]
+            title = f"{child_name} (via compte parent)"
+
+        if user_input is not None:
+            self._user_inputs.update(user_input)
+
+            return self.async_create_entry(
+                title=title,
+                data=self._user_inputs,
+                options={"nickname": self._user_inputs["nickname"]},
+            )
+
+        STEP_NICKNAME_SCHEMA = vol.Schema(
+            {
+                vol.Optional(
+                    "nickname",
+                    default=f"{child_name.split(' ')[-1] if ' ' in child_name else child_name}",
+                ): str,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="nickname",
+            data_schema=STEP_NICKNAME_SCHEMA,
         )
 
     @staticmethod
@@ -234,7 +260,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler(config_entry.entry_id)
 
 
 class CannotConnect(HomeAssistantError):
@@ -246,9 +272,9 @@ class InvalidAuth(HomeAssistantError):
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, config_entry_id: str) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self.config_entry_id = config_entry_id
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -257,28 +283,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        config_entry = self.hass.config_entries.async_get_entry(self.config_entry_id)
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Optional(
-                        "nickname", default=self.config_entry.options.get("nickname")
+                        "nickname", default=config_entry.options.get("nickname")
                     ): vol.All(vol.Coerce(str), vol.Length(min=0)),
                     vol.Optional(
                         "refresh_interval",
-                        default=self.config_entry.options.get(
+                        default=config_entry.options.get(
                             "refresh_interval", DEFAULT_REFRESH_INTERVAL
                         ),
                     ): int,
                     vol.Optional(
                         "lunch_break_time",
-                        default=self.config_entry.options.get(
+                        default=config_entry.options.get(
                             "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
                         ),
                     ): str,
                     vol.Optional(
                         "alarm_offset",
-                        default=self.config_entry.options.get(
+                        default=config_entry.options.get(
                             "alarm_offset", DEFAULT_ALARM_OFFSET
                         ),
                     ): int,
