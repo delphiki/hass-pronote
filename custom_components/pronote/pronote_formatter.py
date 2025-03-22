@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from slugify import slugify
 
 from .const import (
     HOMEWORK_DESC_MAX_LENGTH,
@@ -229,4 +230,13 @@ def format_information_and_survey(information_and_survey) -> dict:
         "template": information_and_survey.template,
         "shared_template": information_and_survey.shared_template,
         "content": information_and_survey.content,
+    }
+
+
+def format_period(period) -> dict:
+    return {
+        "id": slugify(period.name, separator="_"),
+        "name": period.name,
+        "start": period.start,
+        "end": period.end,
     }

@@ -10,6 +10,7 @@ from .pronote_helper import *
 from .pronote_formatter import *
 import re
 from zoneinfo import ZoneInfo
+from slugify import slugify
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -108,6 +109,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "punishments": [],
             "menus": [],
             "information_and_surveys": [],
+            "periods": [],
+            "current_period": None,
             "next_alarm": None,
         }
 
@@ -346,6 +349,21 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         except Exception as ex:
             self.data["menus"] = None
             _LOGGER.info("Error getting menus from pronote: %s", ex)
+
+        # Periods
+        try:
+            self.data["periods"] = client.periods
+        except Exception as ex:
+            self.data["periods"] = None
+            _LOGGER.info("Error getting periods from pronote: %s", ex)
+        try:
+            self.data["current_period"] = client.current_period
+            self.data["current_period_key"] = client.current_period_key = slugify(
+                client.current_period.name, separator="_"
+            )
+        except Exception as ex:
+            self.data["current_period"] = None
+            _LOGGER.info("Error getting current period from pronote: %s", ex)
 
         return self.data
 

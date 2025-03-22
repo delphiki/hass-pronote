@@ -55,6 +55,8 @@ async def async_setup_entry(
             coordinator, "next_alarm", "next alarm", None, SensorDeviceClass.TIMESTAMP
         ),
         PronoteMenusSensor(coordinator),
+        PronoteCurrentPeriodSensor(coordinator),
+        PronotePeriodsSensor(coordinator),
     ]
 
     async_add_entities(sensors, False)
@@ -442,4 +444,46 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
             "updated_at": self.coordinator.last_update_success_time,
             "unread_count": unread_count,
             "information_and_surveys": attributes,
+        }
+
+
+class PronoteCurrentPeriodSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, "current_period", "current period")
+        self._state = self.coordinator.data["current_period"].name
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        period = self.coordinator.data["current_period"]
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "name": period.name,
+            "start": period.start,
+            "end": period.end,
+        }
+
+
+class PronotePeriodsSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, "periods", "periods", "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        if not self.coordinator.data["periods"] is None:
+            for period in self.coordinator.data["periods"]:
+                attributes.append(format_period(period))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "periods": attributes,
         }
