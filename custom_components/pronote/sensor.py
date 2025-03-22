@@ -35,22 +35,24 @@ async def async_setup_entry(
 
     sensors = [
         PronoteChildSensor(coordinator),
-        PronoteTimetableSensor(coordinator, "today"),
-        PronoteTimetableSensor(coordinator, "tomorrow"),
-        PronoteTimetableSensor(coordinator, "next_day"),
-        PronoteTimetableSensor(coordinator, "period"),
+        PronoteTimetableSensor(coordinator, "today", "today"),
+        PronoteTimetableSensor(coordinator, "tomorrow", "tomorrow"),
+        PronoteTimetableSensor(coordinator, "next_day", "next day"),
+        PronoteTimetableSensor(coordinator, "period", "period"),
         PronoteGradesSensor(coordinator),
-        PronoteHomeworkSensor(coordinator, ""),
-        PronoteHomeworkSensor(coordinator, "_period"),
+        PronoteHomeworkSensor(coordinator, key_suffix="", name="homework"),
+        PronoteHomeworkSensor(
+            coordinator, key_suffix="_period", name="period's homework"
+        ),
         PronoteAbsensesSensor(coordinator),
         PronoteEvaluationsSensor(coordinator),
         PronoteAveragesSensor(coordinator),
         PronotePunishmentsSensor(coordinator),
         PronoteDelaysSensor(coordinator),
         PronoteInformationAndSurveysSensor(coordinator),
-        PronoteGenericSensor(coordinator, "ical_url", "timetable_ical_url"),
+        PronoteGenericSensor(coordinator, "ical_url", "timetable iCal URL"),
         PronoteGenericSensor(
-            coordinator, "next_alarm", "next_alarm", None, SensorDeviceClass.TIMESTAMP
+            coordinator, "next_alarm", "next alarm", None, SensorDeviceClass.TIMESTAMP
         ),
         PronoteMenusSensor(coordinator),
     ]
@@ -70,8 +72,6 @@ class PronoteChildSensor(CoordinatorEntity, SensorEntity):
             f"pronote-{self.coordinator.data['sensor_prefix']}-identity"
         )
         self._attr_device_info = DeviceInfo(
-            name=f"Pronote - {self.coordinator.data['child_info'].name}",
-            entry_type=DeviceEntryType.SERVICE,
             identifiers={
                 (DOMAIN, f"Pronote - {self.coordinator.data['child_info'].name}")
             },
@@ -82,12 +82,12 @@ class PronoteChildSensor(CoordinatorEntity, SensorEntity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}"
+        return f"{self.coordinator.data['child_info'].name}"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return self._child_info.name
+        return self._child_info.class_name
 
     @property
     def extra_state_attributes(self):
@@ -122,8 +122,6 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
             f"pronote-{self.coordinator.data['sensor_prefix']}-{self._name}"
         )
         self._attr_device_info = DeviceInfo(
-            name=f"Pronote - {self.coordinator.data['child_info'].name}",
-            entry_type=DeviceEntryType.SERVICE,
             identifiers={
                 (DOMAIN, f"Pronote - {self.coordinator.data['child_info'].name}")
             },
@@ -136,7 +134,7 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_{self._name}"
+        return f"{self.coordinator.data['child_info'].name} {self._name}"
 
     @property
     def native_value(self):
@@ -159,17 +157,19 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return (
-            self.coordinator.last_update_success
-            and self.coordinator.data[self._coordinator_key] is not None
+                self.coordinator.last_update_success
+                and self.coordinator.data[self._coordinator_key] is not None
         )
 
 
 class PronoteTimetableSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator: PronoteDataUpdateCoordinator, suffix: str) -> None:
+    def __init__(
+            self, coordinator: PronoteDataUpdateCoordinator, suffix: str, name: str
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "lessons_" + suffix, "timetable_" + suffix, "len")
+        super().__init__(coordinator, f"lessons_{suffix}", f"{name}'s timetable", "len")
         self._suffix = suffix
         self._start_at = None
         self._end_at = None
@@ -260,10 +260,15 @@ class PronoteGradesSensor(PronoteGenericSensor):
 class PronoteHomeworkSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator: PronoteDataUpdateCoordinator, suffix: str) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key_suffix: str = "",
+            name: str = "homework",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "homework" + suffix, "homework" + suffix, "len")
-        self._suffix = suffix
+        super().__init__(coordinator, f"homework{key_suffix}", name, "len")
+        self._suffix = key_suffix
 
     @property
     def extra_state_attributes(self):
@@ -417,7 +422,7 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
     def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
         super().__init__(
-            coordinator, "information_and_surveys", "information_and_surveys", "len"
+            coordinator, "information_and_surveys", "information and surveys", "len"
         )
 
     @property
