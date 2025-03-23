@@ -233,10 +233,11 @@ def format_information_and_survey(information_and_survey) -> dict:
     }
 
 
-def format_period(period) -> dict:
+def format_period(period, is_current_period: bool) -> dict:
     return {
         "id": slugify(period.name, separator="_"),
         "name": period.name,
         "start": period.start,
         "end": period.end,
+        "is_current_period": is_current_period,
     }
