@@ -31,28 +31,28 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_grades(client):
-    grades = client.current_period.grades
+def get_grades(period):
+    grades = period.grades
     return sorted(grades, key=lambda grade: grade.date, reverse=True)
 
 
-def get_absences(client):
-    absences = client.current_period.absences
+def get_absences(period):
+    absences = period.absences
     return sorted(absences, key=lambda absence: absence.from_date, reverse=True)
 
 
-def get_delays(client):
-    delays = client.current_period.delays
+def get_delays(period):
+    delays = period.delays
     return sorted(delays, key=lambda delay: delay.date, reverse=True)
 
 
-def get_averages(client):
-    averages = client.current_period.averages
+def get_averages(period):
+    averages = period.averages
     return averages
 
 
-def get_punishments(client):
-    punishments = client.current_period.punishments
+def get_punishments(period):
+    punishments = period.punishments
     return sorted(
         punishments,
         key=lambda punishment: punishment.given.strftime("%Y-%m-%d"),
@@ -60,8 +60,8 @@ def get_punishments(client):
     )
 
 
-def get_evaluations(client):
-    evaluations = client.current_period.evaluations
+def get_evaluations(period):
+    evaluations = period.evaluations
     evaluations = sorted(evaluations, key=lambda evaluation: (evaluation.name))
     return sorted(evaluations, key=lambda evaluation: (evaluation.date), reverse=True)
 
@@ -111,6 +111,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "information_and_surveys": [],
             "periods": [],
             "current_period": None,
+            "previous_periods": [],
+            "active_periods": [],
             "next_alarm": None,
         }
 
@@ -235,7 +237,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Grades
         try:
             self.data["grades"] = await self.hass.async_add_executor_job(
-                get_grades, client
+                get_grades, client.current_period
             )
             self.compare_data(
                 previous_data,
@@ -251,7 +253,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Averages
         try:
             self.data["averages"] = await self.hass.async_add_executor_job(
-                get_averages, client
+                get_averages, client.current_period
             )
         except Exception as ex:
             self.data["averages"] = None
@@ -294,7 +296,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Absences
         try:
             self.data["absences"] = await self.hass.async_add_executor_job(
-                get_absences, client
+                get_absences, client.current_period
             )
             self.compare_data(
                 previous_data, "absences", ["from", "to"], "new_absence", format_absence
@@ -306,7 +308,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Delays
         try:
             self.data["delays"] = await self.hass.async_add_executor_job(
-                get_delays, client
+                get_delays, client.current_period
             )
             self.compare_data(
                 previous_data, "delays", ["date", "minutes"], "new_delay", format_delay
@@ -318,7 +320,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Evaluations
         try:
             self.data["evaluations"] = await self.hass.async_add_executor_job(
-                get_evaluations, client
+                get_evaluations, client.current_period
             )
         except Exception as ex:
             self.data["evaluations"] = None
@@ -327,7 +329,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Punishments
         try:
             self.data["punishments"] = await self.hass.async_add_executor_job(
-                get_punishments, client
+                get_punishments, client.current_period
             )
         except Exception as ex:
             self.data["punishments"] = None
@@ -364,6 +366,43 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         except Exception as ex:
             self.data["current_period"] = None
             _LOGGER.info("Error getting current period from pronote: %s", ex)
+
+        # determine previous periods (handle only trimestres and semestres)
+        supported_period_types = ["trimestre", "semestre"]
+        period_type = None
+        if self.data["current_period"] is not None:
+            period_type = self.data["current_period"].name.split(" ")[0].lower()
+
+        if period_type in supported_period_types:
+            for period in self.data["periods"]:
+                if (
+                        period.name.lower().startswith(period_type)
+                        and period.start < self.data["current_period"].start
+                ):
+                    self.data["previous_periods"].append(period)
+                    period_key = slugify(period.name, separator="_")
+                    self.data[
+                        f"grades_{period_key}"
+                    ] = await self.hass.async_add_executor_job(get_grades, period)
+                    self.data[
+                        f"averages_{period_key}"
+                    ] = await self.hass.async_add_executor_job(get_averages, period)
+                    self.data[
+                        f"absences_{period_key}"
+                    ] = await self.hass.async_add_executor_job(get_absences, period)
+                    self.data[
+                        f"delays_{period_key}"
+                    ] = await self.hass.async_add_executor_job(get_delays, period)
+                    self.data[
+                        f"evaluations_{period_key}"
+                    ] = await self.hass.async_add_executor_job(get_evaluations, period)
+                    self.data[
+                        f"punishments_{period_key}"
+                    ] = await self.hass.async_add_executor_job(get_punishments, period)
+
+        self.data["active_periods"] = self.data["previous_periods"] + [
+            self.data["current_period"]
+        ]
 
         return self.data
 
