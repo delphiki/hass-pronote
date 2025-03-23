@@ -1,7 +1,7 @@
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -25,39 +25,117 @@ from .const import (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: PronoteDataUpdateCoordinator = hass.data[DOMAIN][
         config_entry.entry_id
     ]["coordinator"]
 
+    current_period_key = slugify(coordinator.data["current_period"].name, separator="_")
+
     sensors = [
         PronoteChildSensor(coordinator),
-        PronoteTimetableSensor(coordinator, "today", "today"),
-        PronoteTimetableSensor(coordinator, "tomorrow", "tomorrow"),
-        PronoteTimetableSensor(coordinator, "next_day", "next day"),
-        PronoteTimetableSensor(coordinator, "period", "period"),
-        PronoteGradesSensor(coordinator),
-        PronoteHomeworkSensor(coordinator, key_suffix="", name="homework"),
-        PronoteHomeworkSensor(
-            coordinator, key_suffix="_period", name="period's homework"
+        PronoteTimetableSensor(
+            coordinator, key="lessons_today", name="today's timetable"
         ),
-        PronoteAbsensesSensor(coordinator),
-        PronoteEvaluationsSensor(coordinator),
-        PronoteAveragesSensor(coordinator),
-        PronotePunishmentsSensor(coordinator),
-        PronoteDelaysSensor(coordinator),
+        PronoteTimetableSensor(
+            coordinator, key="lessons_tomorrow", name="tomorrow's timetable"
+        ),
+        PronoteTimetableSensor(
+            coordinator, key="lessons_next_day", name="next day's timetable"
+        ),
+        PronoteTimetableSensor(
+            coordinator, key="lessons_period", name="period's timetable"
+        ),
+        PronoteHomeworkSensor(coordinator, key="homework", name="homework"),
+        PronoteHomeworkSensor(
+            coordinator, key="homework_period", name="period's homework"
+        ),
+        # period related sensors
+        PronoteGradesSensor(
+            coordinator, key="grades", name="grades", period_key=current_period_key
+        ),
+        PronoteAbsensesSensor(
+            coordinator, key="absences", name="absences", period_key=current_period_key
+        ),
+        PronoteEvaluationsSensor(
+            coordinator,
+            key="evaluations",
+            name="evaluations",
+            period_key=current_period_key,
+        ),
+        PronoteAveragesSensor(
+            coordinator, key="averages", name="averages", period_key=current_period_key
+        ),
+        PronotePunishmentsSensor(
+            coordinator,
+            key="punishments",
+            name="punishments",
+            period_key=current_period_key,
+        ),
+        PronoteDelaysSensor(
+            coordinator, key="delays", name="delays", period_key=current_period_key
+        ),
+        # generic sensors
         PronoteInformationAndSurveysSensor(coordinator),
         PronoteGenericSensor(coordinator, "ical_url", "timetable iCal URL"),
         PronoteGenericSensor(
             coordinator, "next_alarm", "next alarm", None, SensorDeviceClass.TIMESTAMP
         ),
         PronoteMenusSensor(coordinator),
+        # periods sensors
         PronoteCurrentPeriodSensor(coordinator),
-        PronotePeriodsSensor(coordinator),
+        PronotePeriodsSensor(coordinator, key="periods", name="periods"),
+        PronotePeriodsSensor(
+            coordinator, key="previous_periods", name="previous periods"
+        ),
+        PronotePeriodsSensor(coordinator, key="active_periods", name="active periods"),
     ]
+
+    for period in coordinator.data["previous_periods"]:
+        period_key = slugify(period.name, separator="_")
+        sensors.extend(
+            [
+                PronoteGradesSensor(
+                    coordinator,
+                    key=f"grades_{period_key}",
+                    name=f"grades {period.name}",
+                    period_key=period_key,
+                ),
+                PronoteAveragesSensor(
+                    coordinator,
+                    key=f"averages_{period_key}",
+                    name=f"averages {period.name}",
+                    period_key=period_key,
+                ),
+                PronoteAbsensesSensor(
+                    coordinator,
+                    key=f"absences_{period_key}",
+                    name=f"absences {period.name}",
+                    period_key=period_key,
+                ),
+                PronoteDelaysSensor(
+                    coordinator,
+                    key=f"delays_{period_key}",
+                    name=f"delays {period.name}",
+                    period_key=period_key,
+                ),
+                PronoteEvaluationsSensor(
+                    coordinator,
+                    key=f"evaluations_{period_key}",
+                    name=f"evaluations {period.name}",
+                    period_key=period_key,
+                ),
+                PronotePunishmentsSensor(
+                    coordinator,
+                    key=f"punishments_{period_key}",
+                    name=f"punishments {period.name}",
+                    period_key=period_key,
+                ),
+            ]
+        )
 
     async_add_entities(sensors, False)
 
@@ -108,12 +186,12 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
 
     def __init__(
-        self,
-        coordinator,
-        coordinator_key: str,
-        name: str,
-        state: str = None,
-        device_class: str = None,
+            self,
+            coordinator,
+            coordinator_key: str,
+            name: str,
+            state: str = None,
+            device_class: str = None,
     ) -> None:
         """Initialize the Pronote sensor."""
         super().__init__(coordinator)
@@ -143,8 +221,6 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         """Return the state of the sensor."""
         if self.coordinator.data[self._coordinator_key] is None:
             return "unavailable"
-        elif self._state == "len":
-            return len(self.coordinator.data[self._coordinator_key])
         elif self._state is not None:
             return self._state
         else:
@@ -164,15 +240,41 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         )
 
 
+class PronotePeriodRelatedSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(
+            self, coordinator, key: str, name: str, state: str, period_key: str
+    ) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(coordinator, key, name, state)
+        self._period_key = period_key
+        self._is_current_period = period_key == slugify(
+            coordinator.data["current_period"].name, separator="_"
+        )
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = super().extra_state_attributes
+        attributes["period_key"] = self._period_key
+        attributes["is_current_period"] = self._is_current_period
+
+        return attributes
+
+
 class PronoteTimetableSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
 
     def __init__(
-            self, coordinator: PronoteDataUpdateCoordinator, suffix: str, name: str
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str,
+            name: str,
     ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, f"lessons_{suffix}", f"{name}'s timetable", "len")
-        self._suffix = suffix
+        super().__init__(coordinator, key, name, state=len(coordinator.data[key]))
+        self._key = key
         self._start_at = None
         self._end_at = None
         self._lunch_break_start_at = None
@@ -181,10 +283,14 @@ class PronoteTimetableSensor(PronoteGenericSensor):
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        lessons = self.coordinator.data["lessons_" + self._suffix]
+        lessons = self.coordinator.data[self._key]
         attributes = []
         canceled_counter = None
-        single_day = self._suffix in ["today", "tomorrow", "next_day"]
+        single_day = self._key in [
+            "lessons_today",
+            "lessons_tomorrow",
+            "lessons_next_day",
+        ]
         lunch_break_time = datetime.strptime(
             self.coordinator.config_entry.options.get(
                 "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
@@ -201,8 +307,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             for lesson in lessons:
                 index = lessons.index(lesson)
                 if not (
-                    lesson.start == lessons[index - 1].start
-                    and lesson.canceled is True
+                        lesson.start == lessons[index - 1].start and lesson.canceled is True
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
                 if lesson.canceled is False and self._start_at is None:
@@ -214,8 +319,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                     if lesson.end.time() < lunch_break_time:
                         self._lunch_break_start_at = lesson.end
                     if (
-                        self._lunch_break_end_at is None
-                        and lesson.start.time() >= lunch_break_time
+                            self._lunch_break_end_at is None
+                            and lesson.start.time() >= lunch_break_time
                     ):
                         self._lunch_break_end_at = lesson.start
 
@@ -234,29 +339,36 @@ class PronoteTimetableSensor(PronoteGenericSensor):
         return result
 
 
-class PronoteGradesSensor(PronoteGenericSensor):
+class PronoteGradesSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator: PronoteDataUpdateCoordinator) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str = "grades",
+            name: str = "grades",
+            period_key: str = "current",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "grades", "grades", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]), period_key)
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
+        attributes = super().extra_state_attributes
+        grades = []
         index_note = 0
-        if self.coordinator.data["grades"] is not None:
-            for grade in self.coordinator.data["grades"]:
+        if self.coordinator.data[self._key] is not None:
+            for grade in self.coordinator.data[self._key]:
                 index_note += 1
                 if index_note == GRADES_TO_DISPLAY:
                     break
-                attributes.append(format_grade(grade))
+                grades.append(format_grade(grade))
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "grades": attributes,
-        }
+        attributes["grades"] = grades
+
+        return attributes
 
 
 class PronoteHomeworkSensor(PronoteGenericSensor):
@@ -265,137 +377,174 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
     def __init__(
             self,
             coordinator: PronoteDataUpdateCoordinator,
-            key_suffix: str = "",
+            key: str = "homework",
             name: str = "homework",
     ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, f"homework{key_suffix}", name, "len")
-        self._suffix = key_suffix
+        super().__init__(coordinator, key, name, len(coordinator.data[key]))
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
+        attributes = super().extra_state_attributes
+        homework_attributes = []
         todo_counter = None
-        if self.coordinator.data[f"homework{self._suffix}"] is not None:
+        if self.coordinator.data[self._key] is not None:
             todo_counter = 0
-            for homework in self.coordinator.data[f"homework{self._suffix}"]:
-                attributes.append(format_homework(homework))
+            for homework in self.coordinator.data[self._key]:
+                homework_attributes.append(format_homework(homework))
                 if homework.done is False:
                     todo_counter += 1
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "homework": attributes,
-            "todo_counter": todo_counter,
-        }
+        attributes["homework"] = homework_attributes
+        attributes["todo_counter"] = todo_counter
+
+        return attributes
 
 
-class PronoteAbsensesSensor(PronoteGenericSensor):
+class PronoteAbsensesSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str = "absences",
+            name: str = "absences",
+            period_key: str = "current",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "absences", "absences", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]), period_key)
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
-        if self.coordinator.data["absences"] is not None:
-            for absence in self.coordinator.data["absences"]:
-                attributes.append(format_absence(absence))
+        attributes = super().extra_state_attributes
+        absences = []
+        if self.coordinator.data[self._key] is not None:
+            for absence in self.coordinator.data[self._key]:
+                absences.append(format_absence(absence))
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "absences": attributes,
-        }
+        attributes["absences"] = absences
+
+        return attributes
 
 
-class PronoteDelaysSensor(PronoteGenericSensor):
+class PronoteDelaysSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str = "delays",
+            name: str = "delays",
+            period_key: str = "current",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "delays", "delays", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]), period_key)
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
-        if self.coordinator.data["delays"] is not None:
-            for delay in self.coordinator.data["delays"]:
-                attributes.append(format_delay(delay))
+        attributes = super().extra_state_attributes
+        delays = []
+        if self.coordinator.data[self._key] is not None:
+            for delay in self.coordinator.data[self._key]:
+                delays.append(format_delay(delay))
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "delays": attributes,
-        }
+        attributes["delays"] = delays
+
+        return attributes
 
 
-class PronoteEvaluationsSensor(PronoteGenericSensor):
+class PronoteEvaluationsSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str = "evaluations",
+            name: str = "evaluations",
+            period_key: str = "current",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "evaluations", "evaluations", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]), period_key)
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
+        attributes = super().extra_state_attributes
+        evaluations = []
         index_note = 0
-        if self.coordinator.data["evaluations"] is not None:
-            for evaluation in self.coordinator.data["evaluations"]:
+        if self.coordinator.data[self._key] is not None:
+            for evaluation in self.coordinator.data[self._key]:
                 index_note += 1
                 if index_note == EVALUATIONS_TO_DISPLAY:
                     break
-                attributes.append(format_evaluation(evaluation))
+                evaluations.append(format_evaluation(evaluation))
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "evaluations": attributes,
-        }
+        attributes["evaluations"] = evaluations
+
+        return attributes
 
 
-class PronoteAveragesSensor(PronoteGenericSensor):
+class PronoteAveragesSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str = "averages",
+            name: str = "averages",
+            period_key: str = "current",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "averages", "averages", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]), period_key)
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
-        if self.coordinator.data["averages"] is not None:
-            for average in self.coordinator.data["averages"]:
-                attributes.append(format_average(average))
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "averages": attributes,
-        }
+        attributes = super().extra_state_attributes
+        averages = []
+        if self.coordinator.data[self._key] is not None:
+            for average in self.coordinator.data[self._key]:
+                averages.append(format_average(average))
+
+        attributes["averages"] = averages
+
+        return attributes
 
 
-class PronotePunishmentsSensor(PronoteGenericSensor):
+class PronotePunishmentsSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(
+            self,
+            coordinator: PronoteDataUpdateCoordinator,
+            key: str = "punishments",
+            name: str = "punishments",
+            period_key: str = "current",
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "punishments", "punishments", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]), period_key)
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
-        if self.coordinator.data["punishments"] is not None:
-            for punishment in self.coordinator.data["punishments"]:
-                attributes.append(format_punishment(punishment))
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "punishments": attributes,
-        }
+        attributes = super().extra_state_attributes
+        punishments = []
+        if self.coordinator.data[self._key] is not None:
+            for punishment in self.coordinator.data[self._key]:
+                punishments.append(format_punishment(punishment))
+
+        attributes["punishments"] = punishments
+
+        return attributes
 
 
 class PronoteMenusSensor(PronoteGenericSensor):
@@ -403,19 +552,20 @@ class PronoteMenusSensor(PronoteGenericSensor):
 
     def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "menus", "menus", "len")
+        super().__init__(coordinator, "menus", "menus", len(coordinator.data["menus"]))
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
+        attributes = super().extra_state_attributes
+        menus = []
         if self.coordinator.data["menus"] is not None:
             for menu in self.coordinator.data["menus"]:
-                attributes.append(format_menu(menu))
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "menus": attributes,
-        }
+                menus.append(format_menu(menu))
+
+        attributes["menus"] = menus
+
+        return attributes
 
 
 class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
@@ -424,27 +574,33 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
     def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
         super().__init__(
-            coordinator, "information_and_surveys", "information and surveys", "len"
+            coordinator,
+            "information_and_surveys",
+            "information and surveys",
+            len(coordinator.data["information_and_surveys"]),
         )
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
+        attributes = super().extra_state_attributes
+        information_and_surveys = []
         unread_count = None
         if not self.coordinator.data["information_and_surveys"] is None:
             unread_count = 0
             for information_and_survey in self.coordinator.data[
                 "information_and_surveys"
             ]:
-                attributes.append(format_information_and_survey(information_and_survey))
+                information_and_surveys.append(
+                    format_information_and_survey(information_and_survey)
+                )
                 if information_and_survey.read is False:
                     unread_count += 1
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "unread_count": unread_count,
-            "information_and_surveys": attributes,
-        }
+
+        attributes["unread_count"] = unread_count
+        attributes["information_and_surveys"] = information_and_surveys
+
+        return attributes
 
 
 class PronoteCurrentPeriodSensor(PronoteGenericSensor):
@@ -459,31 +615,36 @@ class PronoteCurrentPeriodSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         period = self.coordinator.data["current_period"]
+        attributes = super().extra_state_attributes
+        attributes["name"] = period.name
+        attributes["start"] = period.start
+        attributes["end"] = period.end
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "name": period.name,
-            "start": period.start,
-            "end": period.end,
-        }
+        return attributes
 
 
 class PronotePeriodsSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(
+            self, coordinator, key: str = "periods", name: str = "periods"
+    ) -> None:
         """Initialize the Pronote sensor."""
-        super().__init__(coordinator, "periods", "periods", "len")
+        super().__init__(coordinator, key, name, len(coordinator.data[key]))
+        self._key = key
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
-        if not self.coordinator.data["periods"] is None:
-            for period in self.coordinator.data["periods"]:
-                attributes.append(format_period(period))
+        attributes = super().extra_state_attributes
+        periods = []
+        current_period_name = self.coordinator.data["current_period"].name
+        if not self.coordinator.data[self._key] is None:
+            for period in self.coordinator.data[self._key]:
+                periods.append(
+                    format_period(period, period.name == current_period_name)
+                )
 
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "periods": attributes,
-        }
+        attributes["periods"] = periods
+
+        return attributes
