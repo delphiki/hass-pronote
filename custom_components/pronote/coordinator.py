@@ -189,8 +189,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         )
 
         if (
-            self.data["lessons_tomorrow"] is not None
-            and len(self.data["lessons_tomorrow"]) > 0
+                self.data["lessons_tomorrow"] is not None
+                and len(self.data["lessons_tomorrow"]) > 0
         ):
             self.data["lessons_next_day"] = self.data["lessons_tomorrow"]
         else:
@@ -283,7 +283,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             information_and_surveys = await self.hass.async_add_executor_job(
                 client.information_and_surveys,
                 today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),
-            )
+                )
             self.data["information_and_surveys"] = sorted(
                 information_and_surveys,
                 key=lambda information_and_survey: information_and_survey.creation_date,
@@ -407,12 +407,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         return self.data
 
     def compare_data(
-        self, previous_data, data_key, compare_keys, event_type, format_func
+            self, previous_data, data_key, compare_keys, event_type, format_func
     ):
         if (
-            previous_data is not None
-            and previous_data[data_key] is not None
-            and self.data[data_key] is not None
+                previous_data is not None
+                and previous_data[data_key] is not None
+                and self.data[data_key] is not None
         ):
             not_found_items = []
             for item in self.data[data_key]:
