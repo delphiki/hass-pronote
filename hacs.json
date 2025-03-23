@@ -1,4 +1,8 @@
 {
   "name": "Pronote for Home Assistant",
-  "country": "FR"
+  "country": "FR",
+  "content_in_root": false,
+  "render_readme": true,
+  "hide_default_branch": false,
+  "filename": "pronote.zip"
 }
