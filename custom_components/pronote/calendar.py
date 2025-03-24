@@ -69,10 +69,7 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
         self._attr_name = f"Emploi du temps de {calendar_name}"
         self._attr_device_info = DeviceInfo(
             name=f"Pronote - {self.coordinator.data['child_info'].name}",
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={
-                (DOMAIN, f"Pronote - {self.coordinator.data['child_info'].name}")
-            },
+            identifiers={(DOMAIN, self.coordinator.data["child_info"].name)},
             manufacturer="Pronote",
             model=self.coordinator.data["child_info"].name,
         )
