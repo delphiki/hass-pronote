@@ -181,6 +181,9 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         if device_class is not None:
             self._attr_device_class = device_class
 
+        self._child_info = coordinator.data["child_info"]
+        self._account_type = coordinator.data["account_type"]
+
     @property
     def native_value(self):
         """Return the state of the sensor."""
@@ -194,7 +197,12 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        return {"updated_at": self.coordinator.last_update_success_time}
+        return {
+            "full_name": self._child_info.name,
+            "nickname": self.coordinator.config_entry.options.get("nickname"),
+            "via_parent_account": self._account_type == "parent",
+            "updated_at": self.coordinator.last_update_success_time,
+        }
 
     @property
     def available(self) -> bool:
@@ -240,19 +248,12 @@ class PronoteClassSensor(PronoteGenericSensor):
             coordinator.data["child_info"].class_name,
         )
 
-        self._child_info = coordinator.data["child_info"]
-        self._account_type = coordinator.data["account_type"]
-
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        return {
-            "full_name": self._child_info.name,
-            "nickname": self.coordinator.config_entry.options.get("nickname"),
+        return super().extra_state_attributes | {
             "class_name": self._child_info.class_name,
             "establishment": self._child_info.establishment,
-            "via_parent_account": self._account_type == "parent",
-            "updated_at": self.coordinator.last_update_success_time,
         }
 
 
@@ -317,7 +318,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                     ):
                         self._lunch_break_end_at = lesson.start
 
-        result = {
+        result = super().extra_state_attributes | {
             "updated_at": self.coordinator.last_update_success_time,
             "lessons": attributes,
             "canceled_lessons_counter": canceled_counter,
