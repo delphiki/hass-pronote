@@ -61,14 +61,14 @@ This integration provides several sensors, always prefixed with `pronote_LASTNAM
 | Sensor | Description |
 |--------|-------------|
 | `sensor.pronote_LASTNAME_FIRSTNAME` | basic informations about your child |
-| `[...]_timetable_today` | today's timetable |
-| `[...]_timetable_tomorrow` | tomorrow's timetable |
-| `[...]_timetable_next_day` | next school day timetable |
-| `[...]_timetable_period` | timetable for next 15 days |
+| `[...]_today_s_timetable` | today's timetable |
+| `[...]_tomorrow_s_timetable` | tomorrow's timetable |
+| `[...]_next_day_s_timetable` | next school day timetable |
+| `[...]_period_s_timetable` | timetable for next 15 days |
 | `[...]_timetable_ical_url` | iCal URL for the timetable (if available) |
 | `[...]_grades` | latest grades |
 | `[...]_homework` | homework |
-| `[...]_homework_period` | homework for max 15 days |
+| `[...]_period_s_homework` | homework for max 15 days |
 | `[...]_absences` | absences |
 | `[...]_evaluations` | evaluations |
 | `[...]_averages` | averages |
