@@ -297,15 +297,19 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
         # Information and Surveys
-        information_and_surveys = await self.hass.async_add_executor_job(
-            client.information_and_surveys,
-            today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),
+        try:
+            information_and_surveys = await self.hass.async_add_executor_job(
+                client.information_and_surveys,
+                today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),
+                )
+            self.data["information_and_surveys"] = sorted(
+                information_and_surveys,
+                key=lambda information_and_survey: information_and_survey.creation_date,
+                reverse=True,
             )
-        self.data["information_and_surveys"] = sorted(
-            information_and_surveys,
-            key=lambda information_and_survey: information_and_survey.creation_date,
-            reverse=True,
-        )
+        except Exception as ex:
+            self.data["information_and_surveys"] = None
+            _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
 
         # Absences
         self.data["absences"] = await self.hass.async_add_executor_job(
