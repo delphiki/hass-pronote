@@ -92,6 +92,16 @@ def get_evaluations(period):
         return None
 
 
+def get_overall_average(period):
+    try:
+        return period.overall_average
+    except Exception as ex:
+        _LOGGER.info(
+            "Error getting overall average from period (%s): %s", period.name, ex
+        )
+        return None
+
+
 class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     """Data update coordinator for the Pronote integration."""
 
@@ -140,6 +150,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "previous_periods": [],
             "active_periods": [],
             "next_alarm": None,
+            "overall_average": None,
         }
 
         client = await self.hass.async_add_executor_job(get_pronote_client, config_data)
@@ -354,6 +365,11 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["menus"] = None
             _LOGGER.info("Error getting menus from pronote: %s", ex)
 
+        # Overall average
+        self.data["overall_average"] = await self.hass.async_add_executor_job(
+            get_overall_average, client.current_period
+        )
+
         # Periods
         try:
             self.data["periods"] = client.periods
@@ -402,6 +418,11 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[
                         f"punishments_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_punishments, period)
+                    self.data[
+                        f"overall_average_{period_key}"
+                    ] = await self.hass.async_add_executor_job(
+                        get_overall_average, period
+                    )
 
         self.data["active_periods"] = self.data["previous_periods"] + [
             self.data["current_period"]

@@ -92,6 +92,13 @@ async def async_setup_entry(
             device_class=SensorDeviceClass.TIMESTAMP,
         ),
         PronoteMenusSensor(coordinator),
+        PronotePeriodRelatedSensor(
+            coordinator,
+            key="overall_average",
+            name="Overall average",
+            state=coordinator.data["overall_average"],
+            period_key=current_period_key,
+        ),
         # periods sensors
         PronoteCurrentPeriodSensor(coordinator),
         PronotePeriodsSensor(coordinator, key="periods", name="Periods"),
@@ -139,6 +146,13 @@ async def async_setup_entry(
                     coordinator,
                     key=f"punishments_{period_key}",
                     name=f"Punishments {period.name}",
+                    period_key=period_key,
+                ),
+                PronotePeriodRelatedSensor(
+                    coordinator,
+                    key=f"overall_average_{period_key}",
+                    name=f"Overall average {period.name}",
+                    state=coordinator.data[f"overall_average_{period_key}"],
                     period_key=period_key,
                 ),
             ]
