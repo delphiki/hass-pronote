@@ -55,27 +55,28 @@ If using a Parent account, you'll have to select the child you want to add:
 
 ## Usage
 
-This integration provides several sensors, always prefixed with `pronote_LASTNAME_FIRSTNAME` (where `LASTNAME` and `FIRSTNAME` are replaced), for example `sensor.pronote_LASTNAME_FIRSTNAME_timetable_today`.
+This integration provides several sensors, always prefixed with `pronote_LASTNAME_FIRSTNAME` (where `LASTNAME` and `FIRSTNAME` are replaced), for example `sensor.pronote_LASTNAME_FIRSTNAME_today_s_timetable`.
 
 
-| Sensor | Description |
-|--------|-------------|
-| `sensor.pronote_LASTNAME_FIRSTNAME` | basic informations about your child |
-| `[...]_today_s_timetable` | today's timetable |
-| `[...]_tomorrow_s_timetable` | tomorrow's timetable |
-| `[...]_next_day_s_timetable` | next school day timetable |
-| `[...]_period_s_timetable` | timetable for next 15 days |
-| `[...]_timetable_ical_url` | iCal URL for the timetable (if available) |
-| `[...]_grades` | latest grades |
-| `[...]_homework` | homework |
-| `[...]_period_s_homework` | homework for max 15 days |
-| `[...]_absences` | absences |
-| `[...]_evaluations` | evaluations |
-| `[...]_averages` | averages |
-| `[...]_punishments` | punishments |
-| `[...]_delays` | delays |
-| `[...]_information_and_surveys` | information_and_surveys |
-| `[...]_menus` | menus (if available) |
+| Sensor                                    | Description                                 |
+|-------------------------------------------|---------------------------------------------|
+| `sensor.pronote_LASTNAME_FIRSTNAME_class` | basic informations about your child's class |
+| `[...]_today_s_timetable`                 | today's timetable                           |
+| `[...]_tomorrow_s_timetable`              | tomorrow's timetable                        |
+| `[...]_next_day_s_timetable`              | next school day timetable                   |
+| `[...]_period_s_timetable`                | timetable for next 15 days                  |
+| `[...]_timetable_ical_url`                | iCal URL for the timetable (if available)   |
+| `[...]_grades`                            | latest grades                               |
+| `[...]_homework`                          | homework                                    |
+| `[...]_period_s_homework`                 | homework for max 15 days                    |
+| `[...]_absences`                          | absences                                    |
+| `[...]_evaluations`                       | evaluations                                 |
+| `[...]_averages`                          | averages                                    |
+| `[...]_punishments`                       | punishments                                 |
+| `[...]_delays`                            | delays                                      |
+| `[...]_information_and_surveys`           | information_and_surveys                     |
+| `[...]_menus`                             | menus (if available)                        |
+| `[...]_overall_average`                   | overall average                             |
 
 The sensors are updated every 15 minutes.
 
