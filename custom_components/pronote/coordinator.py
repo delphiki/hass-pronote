@@ -241,13 +241,16 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         break
                     else:
                         lessons_nextday = None
-                        del lessons_nextday
                     delta = delta + 1
-                self.data["lessons_next_day"] = sorted(
-                    lessons_nextday, key=lambda lesson: lesson.start
-                )
-                lessons_nextday = None
-                del lessons_nextday
+
+                if lessons_nextday is not None:
+                    self.data["lessons_next_day"] = sorted(
+                        lessons_nextday, key=lambda lesson: lesson.start
+                    )
+                    lessons_nextday = None
+                    del lessons_nextday
+                else:
+                    self.data["lessons_next_day"] = None
             except Exception as ex:
                 self.data["lessons_next_day"] = None
                 _LOGGER.info("Error getting lessons_next_day from pronote: %s", ex)
