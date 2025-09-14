@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import logging
@@ -312,10 +312,11 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Information and Surveys
         try:
+            date_from = datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS), datetime.min.time())
             information_and_surveys = await self.hass.async_add_executor_job(
                 client.information_and_surveys,
-                today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS),
-                )
+                date_from,
+            )
             self.data["information_and_surveys"] = sorted(
                 information_and_surveys,
                 key=lambda information_and_survey: information_and_survey.creation_date,
