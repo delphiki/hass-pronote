@@ -346,6 +346,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data["evaluations"] = await self.hass.async_add_executor_job(
             get_evaluations, client.current_period
         )
+        self.compare_data(
+            previous_data,
+            "evaluations",
+            ["name", "date", "subject"],
+            "new_evaluation",
+            format_evaluation,
+        )
 
         # Punishments
         self.data["punishments"] = await self.hass.async_add_executor_job(
