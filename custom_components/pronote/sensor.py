@@ -21,6 +21,7 @@ from .const import (
     GRADES_TO_DISPLAY,
     EVALUATIONS_TO_DISPLAY,
     DEFAULT_LUNCH_BREAK_TIME,
+    TIMETABLE_PERIOD_MAX_LESSONS,
 )
 
 
@@ -290,7 +291,13 @@ class PronoteTimetableSensor(PronoteGenericSensor):
 
     @property
     def extra_state_attributes(self):
-        """Return the state attributes."""
+        """Return the state attributes.
+
+        For daily timetable sensors (today, tomorrow, next day), we expose all lessons.
+        For the period timetable sensor (``lessons_period``), we only expose upcoming
+        lessons (starting from "now") and cap the number of lessons to avoid exceeding
+        Home Assistant recorder attribute size limits.
+        """
         lessons = self.coordinator.data[self._key]
         attributes = []
         canceled_counter = None
@@ -299,6 +306,7 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             "lessons_tomorrow",
             "lessons_next_day",
         ]
+        is_period = self._key == "lessons_period"
         lunch_break_time = datetime.strptime(
             self.coordinator.config_entry.options.get(
                 "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
@@ -312,11 +320,29 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in lessons:
-                index = lessons.index(lesson)
-                if not (
-                        lesson.start == lessons[index - 1].start and lesson.canceled is True
-                ):
+
+            # For the period timetable, keep only upcoming lessons and limit the count.
+            if is_period:
+                now = datetime.now()
+                filtered_lessons = [
+                    lesson for lesson in lessons if lesson.start >= now
+                ]
+                if len(filtered_lessons) > TIMETABLE_PERIOD_MAX_LESSONS:
+                    filtered_lessons = filtered_lessons[:TIMETABLE_PERIOD_MAX_LESSONS]
+            else:
+                filtered_lessons = lessons
+
+            for index, lesson in enumerate(filtered_lessons):
+                # Skip duplicated canceled lessons that share the same start time
+                # as the previous one.
+                if index > 0:
+                    previous = filtered_lessons[index - 1]
+                    if lesson.start == previous.start and lesson.canceled is True:
+                        continue
+
+                if is_period:
+                    attributes.append(format_compact_lesson(lesson, lunch_break_time))
+                else:
                     attributes.append(format_lesson(lesson, lunch_break_time))
                 if lesson.canceled is False and self._start_at is None:
                     self._start_at = lesson.start
@@ -327,8 +353,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
                     if lesson.end.time() < lunch_break_time:
                         self._lunch_break_start_at = lesson.end
                     if (
-                            self._lunch_break_end_at is None
-                            and lesson.start.time() >= lunch_break_time
+                        self._lunch_break_end_at is None
+                        and lesson.start.time() >= lunch_break_time
                     ):
                         self._lunch_break_end_at = lesson.start
 
