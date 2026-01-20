@@ -154,19 +154,21 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         }
 
         client = await self.hass.async_add_executor_job(get_pronote_client, config_data)
-
         if client is None:
             _LOGGER.error("Unable to init pronote client")
             return None
-
-        # should be moved to pronote_helper but won't work
-        if config_data["connection_type"] == "qrcode":
-            new_data = config_data.copy()
-            new_data.update({"qr_code_password": client.password})
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
-
+        
+        # Save possibly refreshed credentials
+        new_creds = await self.hass.async_add_executor_job(client.export_credentials)
+        new_data = self.config_entry.data.copy()
+        new_data.update({k: v for k, v in new_creds.items() 
+                         if k in ['jeton', 'uuid', 'client_identifier']})
+        
+        # + client.password (QR PIN ou jeton) 
+        new_data["qr_code_password"] = client.password
+        
+        self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+        
         child_info = client.info
 
         if config_data["account_type"] == "parent":
