@@ -37,9 +37,20 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
     _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
 
     if data["connection_type"] == "qrcode":
-        return get_client_from_qr_code(data)
+        client = get_client_from_qr_code(data)
     else:
-        return get_client_from_username_password(data)
+        client = get_client_from_username_password(data)
+
+    if client is None:
+        _LOGGER.warning("Client creation failed")
+        return None
+
+    try:
+        client.session_check()
+    except Exception as e:
+        _LOGGER.error("Session check failed: %s", e)
+
+    return client
 
 
 def get_client_from_username_password(
