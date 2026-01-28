@@ -47,7 +47,9 @@
                     "nickname": "Define a nickname for your child",
                     "refresh_interval": "Data refresh interval (in minutes)",
                     "lunch_break_time": "Lunch break threshold time (HH:MM)",
-                    "alarm_offset": "Time delta for alarm (in minutes, before first lesson of the day)"
+                    "alarm_offset": "Time delta for alarm (in minutes, before first lesson of the day)",
+					"grades_to_display": "Max number of grades per grades-entity (between 1 and 50)",
+					"show_all_periods": "Create entities for future periods (per semester or trimester)"
                 }
             }
         }

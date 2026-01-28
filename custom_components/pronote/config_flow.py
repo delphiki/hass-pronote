@@ -14,6 +14,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 
 ### Hotfix for python 3.13 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -47,9 +48,11 @@ from pronotepy.ent import *
 
 from .const import (
     DOMAIN,
-    DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
+    DEFAULT_GRADES_TO_DISPLAY,
+    DEFAULT_REFRESH_INTERVAL,
     DEFAULT_LUNCH_BREAK_TIME,
+    DEFAULT_SHOW_ALL_PERIODS,
 )
 
 
@@ -237,7 +240,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(
                 title=title,
                 data=self._user_inputs,
-                options={"nickname": self._user_inputs["nickname"]},
+                options={"nickname": self._user_inputs["nickname"], "grades_to_display": DEFAULT_GRADES_TO_DISPLAY, "show_all_periods":  DEFAULT_SHOW_ALL_PERIODS},
             )
 
         STEP_NICKNAME_SCHEMA = vol.Schema(
@@ -310,6 +313,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             "alarm_offset", DEFAULT_ALARM_OFFSET
                         ),
                     ): int,
+                    vol.Required(
+                        "grades_to_display",
+                        default=config_entry.options.get(
+                            "grades_to_display", DEFAULT_GRADES_TO_DISPLAY
+                        ),
+                    ): vol.All(
+                        selector.NumberSelector(
+                            selector.NumberSelectorConfig(
+                                min=1, max=50, mode=selector.NumberSelectorMode.BOX
+                            ),
+                        ),
+                        vol.Coerce(int),
+                    ),
+                    vol.Optional(
+                        "show_all_periods",
+                        default=config_entry.options.get(
+                            "show_all_periods", DEFAULT_SHOW_ALL_PERIODS
+                        ),
+                    ): bool,                    
                 }
             ),
         )
