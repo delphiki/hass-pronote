@@ -15,25 +15,28 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
 
-### Hotfix for python 3.13 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
+### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
-from itertools import tee
 import dis
 
 
 def assignments_to_self(method) -> set:
     instance_var = next(iter(method.__code__.co_varnames), "self")
-    instructions = dis.Bytecode(method)
-    i0, i1 = tee(instructions)
-    next(i1, None)
+    instructions = list(dis.Bytecode(method))
     names = set()
-    for a, b in zip(i0, i1):
-        accessing_self = (
-            a.opname in ("LOAD_FAST", "LOAD_DEREF") and a.argval == instance_var
-        ) or (a.opname == "LOAD_FAST_LOAD_FAST" and a.argval[1] == instance_var)
-        storing_attribute = b.opname == "STORE_ATTR"
-        if accessing_self and storing_attribute:
-            names.add(b.argval)
+    for i, inst in enumerate(instructions):
+        if inst.opname == "STORE_ATTR" and i > 0:
+            prev = instructions[i - 1]
+            # Handle any LOAD_FAST variant (LOAD_FAST, LOAD_FAST_BORROW, etc.) or LOAD_DEREF
+            is_load = "LOAD_FAST" in prev.opname or prev.opname == "LOAD_DEREF"
+            if not is_load:
+                continue
+            if isinstance(prev.argval, tuple):
+                # Combined instruction (e.g. LOAD_FAST_LOAD_FAST), self is in the tuple
+                if instance_var in prev.argval:
+                    names.add(inst.argval)
+            elif prev.argval == instance_var:
+                names.add(inst.argval)
     return names
 
 
