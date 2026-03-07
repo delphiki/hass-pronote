@@ -195,7 +195,6 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         if device_class is not None:
             self._attr_device_class = device_class
 
-        self._child_info = coordinator.data["child_info"]
         self._account_type = coordinator.data["account_type"]
 
     @property
@@ -212,7 +211,7 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         return {
-            "full_name": self._child_info.name,
+            "full_name": self.coordinator.data["child_info"].name,
             "nickname": self.coordinator.config_entry.options.get("nickname"),
             "via_parent_account": self._account_type == "parent",
             "updated_at": self.coordinator.last_update_success_time,
@@ -266,8 +265,8 @@ class PronoteClassSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         return super().extra_state_attributes | {
-            "class_name": self._child_info.class_name,
-            "establishment": self._child_info.establishment,
+            "class_name": self.coordinator.data["child_info"].class_name,
+            "establishment": self.coordinator.data["child_info"].establishment,
         }
 
 
