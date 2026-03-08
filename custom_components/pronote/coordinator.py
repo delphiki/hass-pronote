@@ -118,7 +118,6 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             ),
         )
         self.config_entry = entry
-        self._client = None
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
@@ -157,7 +156,20 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         if client is None:
             _LOGGER.error("Unable to init pronote client")
             return None
-        
+
+        try:
+            return await self._fetch_data(client, today, previous_data)
+        finally:
+            try:
+                if hasattr(client, 'session') and client.session is not None:
+                    await self.hass.async_add_executor_job(client.session.close)
+            except Exception:
+                pass
+
+    async def _fetch_data(self, client, today, previous_data):
+        """Fetch all data from Pronote client."""
+        config_data = self.config_entry.data
+
         # Save possibly refreshed credentials
         new_creds = await self.hass.async_add_executor_job(client.export_credentials)
         new_data = self.config_entry.data.copy()
