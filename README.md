@@ -58,25 +58,42 @@ If using a Parent account, you'll have to select the child you want to add:
 This integration provides several sensors, always prefixed with `pronote_LASTNAME_FIRSTNAME` (where `LASTNAME` and `FIRSTNAME` are replaced), for example `sensor.pronote_LASTNAME_FIRSTNAME_today_s_timetable`.
 
 
-| Sensor                                    | Description                                 |
-|-------------------------------------------|---------------------------------------------|
-| `sensor.pronote_LASTNAME_FIRSTNAME_class` | basic informations about your child's class |
-| `[...]_today_s_timetable`                 | today's timetable                           |
-| `[...]_tomorrow_s_timetable`              | tomorrow's timetable                        |
-| `[...]_next_day_s_timetable`              | next school day timetable                   |
-| `[...]_period_s_timetable`                | timetable for next 15 days                  |
-| `[...]_timetable_ical_url`                | iCal URL for the timetable (if available)   |
-| `[...]_grades`                            | latest grades                               |
-| `[...]_homework`                          | homework                                    |
-| `[...]_period_s_homework`                 | homework for max 15 days                    |
-| `[...]_absences`                          | absences                                    |
-| `[...]_evaluations`                       | evaluations                                 |
-| `[...]_averages`                          | averages                                    |
-| `[...]_punishments`                       | punishments                                 |
-| `[...]_delays`                            | delays                                      |
-| `[...]_information_and_surveys`           | information_and_surveys                     |
-| `[...]_menus`                             | menus (if available)                        |
-| `[...]_overall_average`                   | overall average                             |
+| Sensor                                    | Description                                          |
+|-------------------------------------------|------------------------------------------------------|
+| `sensor.pronote_LASTNAME_FIRSTNAME_class` | basic informations about your child's class          |
+| `[...]_today_s_timetable`                 | today's timetable                                    |
+| `[...]_tomorrow_s_timetable`              | tomorrow's timetable                                 |
+| `[...]_next_day_s_timetable`              | next school day timetable                            |
+| `[...]_period_s_timetable`                | timetable for next 15 days                           |
+| `[...]_timetable_ical_url`                | iCal URL for the timetable (if available)            |
+| `[...]_next_alarm`                        | next alarm timestamp based on timetable              |
+| `[...]_grades`                            | latest grades (current period)                       |
+| `[...]_homework`                          | homework                                             |
+| `[...]_period_s_homework`                 | homework for max 15 days                             |
+| `[...]_absences`                          | absences (current period)                            |
+| `[...]_evaluations`                       | evaluations (current period)                         |
+| `[...]_averages`                          | averages (current period)                            |
+| `[...]_punishments`                       | punishments (current period)                         |
+| `[...]_delays`                            | delays (current period)                              |
+| `[...]_overall_average`                   | overall average (current period)                     |
+| `[...]_information_and_surveys`           | information and surveys                              |
+| `[...]_menus`                             | menus (if available)                                 |
+| `[...]_current_period`                    | current period name and dates                        |
+| `[...]_periods`                           | list of all periods                                  |
+| `[...]_previous_periods`                  | list of previous periods                             |
+| `[...]_active_periods`                    | list of active periods (previous + current)          |
+
+For each previous period (e.g. `trimestre_1`), the following sensors are also created:
+
+| Sensor                                    | Description                                          |
+|-------------------------------------------|------------------------------------------------------|
+| `[...]_grades_trimestre_1`                | grades for the period                                |
+| `[...]_averages_trimestre_1`              | averages for the period                              |
+| `[...]_absences_trimestre_1`              | absences for the period                              |
+| `[...]_delays_trimestre_1`                | delays for the period                                |
+| `[...]_evaluations_trimestre_1`           | evaluations for the period                           |
+| `[...]_punishments_trimestre_1`           | punishments for the period                           |
+| `[...]_overall_average_trimestre_1`       | overall average for the period                       |
 
 The sensors are updated every 15 minutes.
 
