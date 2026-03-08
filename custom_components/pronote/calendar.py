@@ -19,12 +19,10 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up ReCollect Waste sensors based on a config entry."""
+    """Set up Pronote calendar based on a config entry."""
     coordinator: PronoteDataUpdateCoordinator = hass.data[DOMAIN][
         config_entry.entry_id
     ]["coordinator"]
-
-    await coordinator.async_config_entry_first_refresh()
 
     async_add_entities([PronoteCalendar(coordinator, config_entry)], False)
 
