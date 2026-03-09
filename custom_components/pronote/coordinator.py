@@ -93,8 +93,27 @@ def get_evaluations(period):
 
 
 def get_overall_average(period):
+    """Return overall average as a real number.
+
+    Some Pronote backends expose the overall average using a localized string
+    (e.g. "13,2"). Home Assistant numeric_state conditions require a value
+    that can be parsed as a float, so we normalise the decimal separator here.
+    """
     try:
-        return period.overall_average
+        overall = period.overall_average
+        if overall is None:
+            return None
+
+        # If Pronote returns a localized string like "13,2", normalise it.
+        if isinstance(overall, str):
+            normalized = overall.replace(",", ".")
+            try:
+                return float(normalized)
+            except (TypeError, ValueError):
+                # If parsing fails, fall back to the raw value.
+                return overall
+
+        return overall
     except Exception as ex:
         _LOGGER.info(
             "Error getting overall average from period (%s): %s", period.name, ex
