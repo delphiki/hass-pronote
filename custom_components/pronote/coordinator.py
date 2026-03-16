@@ -400,50 +400,79 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         )
 
         # Periods
+        raw_periods = None
+        raw_current_period = None
         try:
-            self.data["periods"] = client.periods
+            raw_periods = client.periods
         except Exception as ex:
-            self.data["periods"] = None
             _LOGGER.info("Error getting periods from pronote: %s", ex)
         try:
-            self.data["current_period"] = client.current_period
-            self.data["current_period_key"] = client.current_period_key = slugify(
-                client.current_period.name, separator="_"
+            raw_current_period = client.current_period
+            self.data["current_period_key"] = slugify(
+                raw_current_period.name, separator="_"
             )
         except Exception as ex:
-            self.data["current_period"] = None
             _LOGGER.info("Error getting current period from pronote: %s", ex)
 
         # determine previous periods (handle only trimestres and semestres)
         supported_period_types = ["trimestre", "semestre"]
         period_type = None
-        if self.data["current_period"] is not None:
-            period_type = self.data["current_period"].name.split(" ")[0].lower()
+        raw_previous_periods = []
+        if raw_current_period is not None:
+            period_type = raw_current_period.name.split(" ")[0].lower()
 
-        if period_type in supported_period_types:
-            for period in self.data["periods"]:
+        if period_type in supported_period_types and raw_periods is not None:
+            for period in raw_periods:
                 if (
                         period.name.lower().startswith(period_type)
-                        and period.start < self.data["current_period"].start
+                        and period.start < raw_current_period.start
                 ):
-                    self.data["previous_periods"].append(period)
+                    raw_previous_periods.append(period)
                     period_key = slugify(period.name, separator="_")
 
                     self.data[
                         f"grades_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_grades, period)
+                    self.compare_data(
+                        previous_data,
+                        f"grades_{period_key}",
+                        ["date", "subject", "grade_out_of"],
+                        "new_grade",
+                        format_grade,
+                    )
                     self.data[
                         f"averages_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_averages, period)
                     self.data[
                         f"absences_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_absences, period)
+                    self.compare_data(
+                        previous_data,
+                        f"absences_{period_key}",
+                        ["from", "to"],
+                        "new_absence",
+                        format_absence,
+                    )
                     self.data[
                         f"delays_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_delays, period)
+                    self.compare_data(
+                        previous_data,
+                        f"delays_{period_key}",
+                        ["date", "minutes"],
+                        "new_delay",
+                        format_delay,
+                    )
                     self.data[
                         f"evaluations_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_evaluations, period)
+                    self.compare_data(
+                        previous_data,
+                        f"evaluations_{period_key}",
+                        ["name", "date", "subject"],
+                        "new_evaluation",
+                        format_evaluation,
+                    )
                     self.data[
                         f"punishments_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_punishments, period)
