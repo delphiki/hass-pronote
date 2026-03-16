@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 
 import logging
+from pronotepy.dataClasses import Period as PronotePeriod
 from .pronote_helper import *
 from .pronote_formatter import *
 import re
@@ -165,6 +167,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     await self.hass.async_add_executor_job(client.session.close)
             except Exception:
                 pass
+            # Clear the class-level set that accumulates every Period ever created
+            PronotePeriod.instances.clear()
 
     async def _fetch_data(self, client, today, previous_data):
         """Fetch all data from Pronote client."""
@@ -449,9 +453,29 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         get_overall_average, period
                     )
 
-        self.data["active_periods"] = self.data["previous_periods"] + [
-            self.data["current_period"]
+        # Serialize periods to plain objects (drops back-references to client)
+        self.data["periods"] = (
+            [_serialize_period(p) for p in raw_periods]
+            if raw_periods is not None
+            else None
+        )
+        self.data["current_period"] = (
+            _serialize_period(raw_current_period)
+            if raw_current_period is not None
+            else None
+        )
+        self.data["previous_periods"] = [
+            _serialize_period(p) for p in raw_previous_periods
         ]
+        self.data["active_periods"] = self.data["previous_periods"] + (
+            [self.data["current_period"]]
+            if self.data["current_period"] is not None
+            else []
+        )
+
+        # Strip _client back-references to allow GC of the client object graph
+        for value in self.data.values():
+            _strip_client_refs(value)
 
         return self.data
 
@@ -460,8 +484,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     ):
         if (
                 previous_data is not None
-                and previous_data[data_key] is not None
-                and self.data[data_key] is not None
+                and previous_data.get(data_key) is not None
+                and self.data.get(data_key) is not None
         ):
             not_found_items = []
             for item in self.data[data_key]:
@@ -486,3 +510,57 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "data": event_data,
         }
         self.hass.bus.async_fire(EVENT_TYPE, event_data)
+
+
+def _serialize_period(period) -> SimpleNamespace:
+    """Convert a pronotepy Period to a plain object without client back-references."""
+    return SimpleNamespace(
+        name=period.name,
+        start=period.start,
+        end=period.end,
+    )
+
+
+def _strip_client_refs(obj, _visited=None):
+    """Null out _client back-references on pronotepy objects to allow GC of the client."""
+    if _visited is None:
+        _visited = set()
+    obj_id = id(obj)
+    if obj_id in _visited:
+        return
+    if isinstance(obj, (str, int, float, bool, type(None), datetime, date, timedelta, SimpleNamespace)):
+        return
+    _visited.add(obj_id)
+
+    if isinstance(obj, (list, tuple)):
+        for item in obj:
+            _strip_client_refs(item, _visited)
+        return
+
+    if isinstance(obj, dict):
+        for val in obj.values():
+            _strip_client_refs(val, _visited)
+        return
+
+    # Null _client if present
+    if hasattr(obj, '_client'):
+        try:
+            obj._client = None
+        except (AttributeError, TypeError):
+            pass
+
+    # Recurse into sub-objects via __slots__ and __dict__
+    for cls in type(obj).__mro__:
+        for slot in getattr(cls, '__slots__', ()):
+            if slot == '_client':
+                continue
+            try:
+                val = getattr(obj, slot)
+            except AttributeError:
+                continue
+            if val is not None and not callable(val):
+                _strip_client_refs(val, _visited)
+
+    for val in getattr(obj, '__dict__', {}).values():
+        if val is not None and not callable(val):
+            _strip_client_refs(val, _visited)
