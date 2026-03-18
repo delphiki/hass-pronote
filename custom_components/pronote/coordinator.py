@@ -309,10 +309,11 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             get_averages, client.current_period
         )
 
-        # Homework
+        # Homework (pre-format to avoid accessing _client after strip)
         try:
             homework = await self.hass.async_add_executor_job(client.homework, today)
-            self.data["homework"] = sorted(homework, key=lambda lesson: lesson.date)
+            homework_sorted = sorted(homework, key=lambda lesson: lesson.date)
+            self.data["homework"] = [format_homework(hw) for hw in homework_sorted]
         except Exception as ex:
             self.data["homework"] = None
             _LOGGER.info("Error getting homework from pronote: %s", ex)
@@ -321,9 +322,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             homework_period = await self.hass.async_add_executor_job(
                 client.homework, today, today + timedelta(days=HOMEWORK_MAX_DAYS)
             )
-            self.data["homework_period"] = sorted(
+            homework_period_sorted = sorted(
                 homework_period, key=lambda homework: homework.date
             )
+            self.data["homework_period"] = [format_homework(hw) for hw in homework_period_sorted]
         except Exception as ex:
             self.data["homework_period"] = None
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)

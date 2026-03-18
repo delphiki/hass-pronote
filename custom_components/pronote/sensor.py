@@ -402,8 +402,8 @@ class PronoteHomeworkSensor(PronoteGenericSensor):
         if self.coordinator.data[self._key] is not None:
             todo_counter = 0
             for homework in self.coordinator.data[self._key]:
-                homework_attributes.append(format_homework(homework))
-                if homework.done is False:
+                homework_attributes.append(homework)
+                if homework["done"] is False:
                     todo_counter += 1
 
         attributes["homework"] = homework_attributes
