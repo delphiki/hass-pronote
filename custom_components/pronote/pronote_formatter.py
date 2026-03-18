@@ -59,6 +59,10 @@ def format_attachment_list(attachments):
 
 
 def format_homework(homework) -> dict:
+    try:
+        files = format_attachment_list(homework.files)
+    except AttributeError:
+        files = []
     return {
         "date": homework.date,
         "subject": homework.subject.name,
@@ -66,7 +70,7 @@ def format_homework(homework) -> dict:
         "description": (homework.description),
         "done": homework.done,
         "background_color": homework.background_color,
-        "files": format_attachment_list(homework.files),
+        "files": files,
     }
 
 
