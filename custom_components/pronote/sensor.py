@@ -531,7 +531,7 @@ class PronoteAveragesSensor(PronotePeriodRelatedSensor):
             for average in self.coordinator.data[self._key]:
                 averages.append(format_average(average))
 
-        attributes["averages"] = averages
+        attributes["averages"] = sorted(averages, key=lambda a: a["subject"])
 
         return attributes
 
