@@ -130,7 +130,7 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
         qr_code_url = data["qr_code_url"]
         qr_code_username = data["qr_code_username"]
         qr_code_password = data["qr_code_password"]
-        qr_code_uuid = data["qr_code_uuid"]
+        qr_code_uuid = data.get("uuid", data["qr_code_uuid"])
         qr_code_account_pin = data.get("account_pin", None)
         qr_code_device_name = data.get("device_name", None)
         qr_code_client_identifier = data.get("client_identifier", None)
