@@ -182,6 +182,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         
         # + client.password (QR PIN ou jeton) 
         new_data["qr_code_password"] = client.password
+        if new_creds.get("uuid"):
+            new_data["qr_code_uuid"] = new_creds["uuid"]
         
         self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
         
