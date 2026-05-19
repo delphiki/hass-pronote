@@ -301,7 +301,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.compare_data(
             previous_data,
             "grades",
-            ["date", "subject", "grade_out_of"],
+            ["date", "subject", "grade_out_of", "comment"],
             "new_grade",
             format_grade,
         )
