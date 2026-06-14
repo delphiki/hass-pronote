@@ -24,6 +24,9 @@ async def async_setup_entry(
         config_entry.entry_id
     ]["coordinator"]
 
+    if coordinator.data is None or coordinator.data.get("child_info") is None:
+        return
+
     async_add_entities([PronoteCalendar(coordinator, config_entry)], False)
 
 

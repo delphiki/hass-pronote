@@ -15,6 +15,7 @@ from datetime import datetime
 
 from .coordinator import PronoteDataUpdateCoordinator
 from .pronote_formatter import *
+from .server_status import PronoteServerStatusSensor, get_pronote_base_url
 
 from .const import (
     DOMAIN,
@@ -36,6 +37,20 @@ async def async_setup_entry(
     coordinator: PronoteDataUpdateCoordinator = hass.data[DOMAIN][
         config_entry.entry_id
     ]["coordinator"]
+
+    # Server status sensor: independent of the coordinator data, so it is
+    # created (and keeps probing) even when Pronote is unreachable — which is
+    # precisely the situation it exists to report.
+    base_url = get_pronote_base_url(config_entry.data)
+    if base_url is not None:
+        async_add_entities([PronoteServerStatusSensor(config_entry, base_url)])
+
+    # Pronote may be unreachable (e.g. at startup during an outage): the
+    # coordinator then has no data yet, so create no data entities. The entry is
+    # reloaded once data becomes available (see __init__.py), which re-runs this
+    # setup with real data.
+    if coordinator.data is None or coordinator.data.get("current_period") is None:
+        return
 
     current_period_key = slugify(coordinator.data["current_period"].name, separator="_")
 
