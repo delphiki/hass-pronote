@@ -1,0 +1,47 @@
+{
+  "entity": {
+    "sensor": {
+      "server_status": {
+        "default": "mdi:server-network",
+        "state": {
+          "operational": "mdi:server-network",
+          "maintenance": "mdi:server-network-off",
+          "error": "mdi:alert-circle-outline",
+          "unreachable": "mdi:lan-disconnect"
+        }
+      },
+      "class": { "default": "mdi:account-school" },
+      "lessons_today": { "default": "mdi:timetable" },
+      "lessons_tomorrow": { "default": "mdi:timetable" },
+      "lessons_next_day": { "default": "mdi:timetable" },
+      "lessons_period": { "default": "mdi:timetable" },
+      "homework": { "default": "mdi:notebook-edit-outline" },
+      "homework_period": { "default": "mdi:notebook-edit-outline" },
+      "grades": { "default": "mdi:school-outline" },
+      "grades_period": { "default": "mdi:school-outline" },
+      "absences": { "default": "mdi:account-off-outline" },
+      "absences_period": { "default": "mdi:account-off-outline" },
+      "evaluations": { "default": "mdi:clipboard-check-outline" },
+      "evaluations_period": { "default": "mdi:clipboard-check-outline" },
+      "averages": { "default": "mdi:chart-line" },
+      "averages_period": { "default": "mdi:chart-line" },
+      "punishments": { "default": "mdi:gavel" },
+      "punishments_period": { "default": "mdi:gavel" },
+      "delays": { "default": "mdi:clock-alert-outline" },
+      "delays_period": { "default": "mdi:clock-alert-outline" },
+      "overall_average": { "default": "mdi:sigma" },
+      "overall_average_period": { "default": "mdi:sigma" },
+      "information_and_surveys": { "default": "mdi:message-alert-outline" },
+      "ical_url": { "default": "mdi:calendar-export" },
+      "next_alarm": { "default": "mdi:alarm" },
+      "menus": { "default": "mdi:silverware-fork-knife" },
+      "current_period": { "default": "mdi:calendar-range" },
+      "periods": { "default": "mdi:calendar-multiple" },
+      "previous_periods": { "default": "mdi:history" },
+      "active_periods": { "default": "mdi:calendar-check" }
+    },
+    "calendar": {
+      "timetable": { "default": "mdi:timetable" }
+    }
+  }
+}
