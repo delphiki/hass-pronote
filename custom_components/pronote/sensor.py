@@ -2,6 +2,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.util import slugify as ha_slugify
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -255,6 +256,10 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = (
             f"{DOMAIN}_{self.coordinator.data['sensor_prefix']}_{self._name}"
         )
+        # Pin entity_id to the English slug so it stays stable regardless of the
+        # localized (translated) entity name.
+        child_name = self.coordinator.data["child_info"].name
+        self.entity_id = f"sensor.{ha_slugify(f'Pronote - {child_name} {self._name}')}"
 
         if device_class is not None:
             self._attr_device_class = device_class
