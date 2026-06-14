@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.core import HomeAssistant, callback
 
 from datetime import timedelta
 
@@ -40,10 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator = PronoteDataUpdateCoordinator(hass, entry)
 
-    await coordinator.async_config_entry_first_refresh()
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
+    await coordinator.async_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
@@ -52,6 +48,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    if not coordinator.last_update_success:
+        unsub = None
+
+        @callback
+        def _stop_listening() -> None:
+            nonlocal unsub
+            if unsub is not None:
+                unsub()
+                unsub = None
+
+        @callback
+        def _reload_on_recovery() -> None:
+            if coordinator.last_update_success:
+                _stop_listening()
+                hass.async_create_task(
+                    hass.config_entries.async_reload(entry.entry_id)
+                )
+
+        unsub = coordinator.async_add_listener(_reload_on_recovery)
+        entry.async_on_unload(_stop_listening)
 
     return True
 
