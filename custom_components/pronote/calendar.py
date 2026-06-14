@@ -67,7 +67,6 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
         self._attr_translation_key = "timetable"
         self._attr_translation_placeholders = {"child": calendar_name}
         self._attr_unique_id = f"{coordinator.data['sensor_prefix']}-timetable"
-        self._attr_name = f"Emploi du temps de {calendar_name}"
         self._attr_device_info = DeviceInfo(
             name=f"Pronote - {self.coordinator.data['child_info'].name}",
             identifiers={(DOMAIN, self.coordinator.data["child_info"].name)},

@@ -51,5 +51,50 @@
                 }
             }
         }
+    },
+    "entity": {
+        "sensor": {
+            "server_status": {
+                "name": "État du serveur",
+                "state": {
+                    "operational": "Fonctionnel",
+                    "maintenance": "En maintenance",
+                    "error": "Erreur",
+                    "unreachable": "Injoignable"
+                }
+            },
+            "class": { "name": "Classe" },
+            "lessons_today": { "name": "Emploi du temps du jour" },
+            "lessons_tomorrow": { "name": "Emploi du temps de demain" },
+            "lessons_next_day": { "name": "Emploi du temps du jour suivant" },
+            "lessons_period": { "name": "Emploi du temps de la période" },
+            "homework": { "name": "Devoirs" },
+            "homework_period": { "name": "Devoirs de la période" },
+            "grades": { "name": "Notes" },
+            "grades_period": { "name": "Notes {period}" },
+            "absences": { "name": "Absences" },
+            "absences_period": { "name": "Absences {period}" },
+            "evaluations": { "name": "Évaluations" },
+            "evaluations_period": { "name": "Évaluations {period}" },
+            "averages": { "name": "Moyennes" },
+            "averages_period": { "name": "Moyennes {period}" },
+            "punishments": { "name": "Punitions" },
+            "punishments_period": { "name": "Punitions {period}" },
+            "delays": { "name": "Retards" },
+            "delays_period": { "name": "Retards {period}" },
+            "overall_average": { "name": "Moyenne générale" },
+            "overall_average_period": { "name": "Moyenne générale {period}" },
+            "information_and_surveys": { "name": "Informations et sondages" },
+            "ical_url": { "name": "URL iCal de l'emploi du temps" },
+            "next_alarm": { "name": "Prochaine alarme" },
+            "menus": { "name": "Menus" },
+            "current_period": { "name": "Période actuelle" },
+            "periods": { "name": "Périodes" },
+            "previous_periods": { "name": "Périodes précédentes" },
+            "active_periods": { "name": "Périodes actives" }
+        },
+        "calendar": {
+            "timetable": { "name": "Emploi du temps de {child}" }
+        }
     }
 }

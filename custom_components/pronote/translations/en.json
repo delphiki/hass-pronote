@@ -51,5 +51,50 @@
                 }
             }
         }
+    },
+    "entity": {
+        "sensor": {
+            "server_status": {
+                "name": "Server status",
+                "state": {
+                    "operational": "Operational",
+                    "maintenance": "Under maintenance",
+                    "error": "Error",
+                    "unreachable": "Unreachable"
+                }
+            },
+            "class": { "name": "Class" },
+            "lessons_today": { "name": "Today's timetable" },
+            "lessons_tomorrow": { "name": "Tomorrow's timetable" },
+            "lessons_next_day": { "name": "Next day's timetable" },
+            "lessons_period": { "name": "Period's timetable" },
+            "homework": { "name": "Homework" },
+            "homework_period": { "name": "Period's homework" },
+            "grades": { "name": "Grades" },
+            "grades_period": { "name": "Grades {period}" },
+            "absences": { "name": "Absences" },
+            "absences_period": { "name": "Absences {period}" },
+            "evaluations": { "name": "Evaluations" },
+            "evaluations_period": { "name": "Evaluations {period}" },
+            "averages": { "name": "Averages" },
+            "averages_period": { "name": "Averages {period}" },
+            "punishments": { "name": "Punishments" },
+            "punishments_period": { "name": "Punishments {period}" },
+            "delays": { "name": "Delays" },
+            "delays_period": { "name": "Delays {period}" },
+            "overall_average": { "name": "Overall average" },
+            "overall_average_period": { "name": "Overall average {period}" },
+            "information_and_surveys": { "name": "Information and surveys" },
+            "ical_url": { "name": "Timetable iCal URL" },
+            "next_alarm": { "name": "Next alarm" },
+            "menus": { "name": "Menus" },
+            "current_period": { "name": "Current period" },
+            "periods": { "name": "Periods" },
+            "previous_periods": { "name": "Previous periods" },
+            "active_periods": { "name": "Active periods" }
+        },
+        "calendar": {
+            "timetable": { "name": "{child}'s timetable" }
+        }
     }
 }
