@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util, slugify
 
 from .const import DOMAIN
 
@@ -105,6 +105,9 @@ class PronoteServerStatusSensor(SensorEntity):
         sensor_prefix = re.sub("[^A-Za-z]", "_", child_name.lower())
 
         self._attr_unique_id = f"{DOMAIN}_{sensor_prefix}_server_status"
+        # Pin the entity_id to the English slug so it stays ..._server_status
+        # regardless of the backend language used to localize the name.
+        self.entity_id = f"sensor.{slugify(f'Pronote - {child_name} Server status')}"
         self._attr_device_info = DeviceInfo(
             name=f"Pronote - {child_name}",
             identifiers={(DOMAIN, child_name)},
