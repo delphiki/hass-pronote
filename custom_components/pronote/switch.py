@@ -41,11 +41,12 @@ async def async_setup_entry(
         return
 
     registry = er.async_get(hass)
-    known: set[str] = {
-        entry.unique_id
-        for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id)
-        if entry.domain == "switch"
-    }
+
+    # Unique ids of the entities this setup has created. It starts out empty on
+    # every start: registry entries are not live entities, they only carry the
+    # entity id and settings of entities the platform is expected to create
+    # again. Seeding this from the registry would leave them unprovided.
+    added_ids: set[str] = set()
 
     @callback
     def sync_discussion_switches() -> None:
@@ -69,18 +70,21 @@ async def async_setup_entry(
         added = [
             PronoteDiscussionSwitch(coordinator, discussion, unique_id)
             for unique_id, discussion in current.items()
-            if unique_id not in known
+            if unique_id not in added_ids
         ]
         if added:
-            known.update(entity.unique_id for entity in added)
+            added_ids.update(entity.unique_id for entity in added)
             async_add_entities(added)
 
-        for unique_id in known - set(current):
-            known.discard(unique_id)
-            entity_id = registry.async_get_entity_id("switch", DOMAIN, unique_id)
-            if entity_id:
-                _LOGGER.debug("Removing switch of gone discussion: %s", entity_id)
-                registry.async_remove(entity_id)
+        for entry in er.async_entries_for_config_entry(
+                registry, config_entry.entry_id
+        ):
+            if entry.domain == "switch" and entry.unique_id not in current:
+                _LOGGER.debug(
+                    "Removing switch of gone discussion: %s", entry.entity_id
+                )
+                registry.async_remove(entry.entity_id)
+                added_ids.discard(entry.unique_id)
 
     sync_discussion_switches()
     config_entry.async_on_unload(
