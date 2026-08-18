@@ -106,16 +106,22 @@ Its state is the number of discussions, excluding trashed ones and drafts.
 | Attribute      | Description                                                        |
 |----------------|--------------------------------------------------------------------|
 | `unread_count` | total number of unread messages, across every discussion            |
-| `discussions`  | the 10 most recent discussions, newest first                        |
+| `discussions`  | the most recent discussions, newest first                           |
 
 Each entry of `discussions` holds `subject`, `creator`, `unread`, `closed`,
 `labels`, `messages_count`, `date` (first message), `last_message_date`,
 `last_message_author`, `last_message`, and `messages` (the last 3, each capped
-at 200 characters). `author` is `null` when you are the author of the message.
+at 1000 characters). `author` is `null` when you are the author of the message.
 
 Reading the messages of a discussion costs one request per discussion, so they
 are only loaded for the 10 most recent ones; older discussions keep their
 metadata without content.
+
+Home Assistant stops recording entity attributes past 16 KiB, and discussions
+pile up over a school year. Rather than exposing a fixed number of them, the
+most recent ones are kept until that budget is reached: a handful of
+discussions keep their full content, while a busy mailbox degrades gracefully.
+The state and `unread_count` always cover every discussion.
 
 A `pronote_event` of type `new_discussion` is fired when a discussion is created
 or receives a new message, which can be used to trigger a notification.

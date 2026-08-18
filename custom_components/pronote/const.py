@@ -16,15 +16,18 @@ INFO_SURVEY_LIMIT_MAX_DAYS = 7
 
 HOMEWORK_DESC_MAX_LENGTH = 125
 
-# Discussions. Two things need bounding here: loading the messages of a
-# discussion costs one HTTP request per discussion on every refresh, and the
-# messages end up in the entity attributes, which Home Assistant refuses to
-# record past 16 KiB. Discussions accumulate over a school year, so the number
-# exposed is capped as well (the state still counts them all).
+# Discussions. Loading the messages of a discussion costs one HTTP request per
+# discussion on every refresh, hence DISCUSSIONS_TO_LOAD.
+#
+# The messages then end up in the entity attributes, which Home Assistant stops
+# recording past 16 KiB. Rather than capping the number of discussions shown,
+# the most recent ones are kept until DISCUSSIONS_ATTRIBUTE_MAX_BYTES is
+# reached: a few discussions keep their full content, many degrade gracefully.
+# The state and unread_count always cover them all.
 DISCUSSIONS_TO_LOAD = 10
-DISCUSSIONS_TO_DISPLAY = 10
 DISCUSSION_MESSAGES_TO_DISPLAY = 3
-DISCUSSION_CONTENT_MAX_LENGTH = 200
+DISCUSSION_CONTENT_MAX_LENGTH = 1000
+DISCUSSIONS_ATTRIBUTE_MAX_BYTES = 12000
 
 # default values for options
 DEFAULT_REFRESH_INTERVAL = 15

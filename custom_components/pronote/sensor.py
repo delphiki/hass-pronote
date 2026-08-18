@@ -14,6 +14,8 @@ from homeassistant.helpers.update_coordinator import (
 
 from datetime import datetime
 
+import json
+
 from .coordinator import PronoteDataUpdateCoordinator
 from .pronote_formatter import *
 from .server_status import PronoteServerStatusSensor, get_pronote_base_url
@@ -22,13 +24,29 @@ from .const import (
     DOMAIN,
     GRADES_TO_DISPLAY,
     EVALUATIONS_TO_DISPLAY,
-    DISCUSSIONS_TO_DISPLAY,
+    DISCUSSIONS_ATTRIBUTE_MAX_BYTES,
     DEFAULT_LUNCH_BREAK_TIME,
 )
 
 
 def len_or_none(data):
     return None if data is None else len(data)
+
+def fit_discussions(discussions):
+    """Return the most recent discussions fitting in the attribute size budget.
+
+    Discussions pile up over a school year and carry message contents, which
+    would eventually push the attributes past the size Home Assistant is
+    willing to record. The first discussion is always kept, however big.
+    """
+    fitted = []
+    size = 0
+    for discussion in discussions:
+        size += len(json.dumps(discussion, default=str))
+        if fitted and size > DISCUSSIONS_ATTRIBUTE_MAX_BYTES:
+            break
+        fitted.append(discussion)
+    return fitted
 
 
 async def async_setup_entry(
@@ -819,7 +837,7 @@ class PronoteDiscussionsSensor(PronoteGenericSensor):
             else sum(discussion["unread"] for discussion in discussions)
         )
         attributes["discussions"] = (
-            [] if discussions is None else discussions[0:DISCUSSIONS_TO_DISPLAY]
+            [] if discussions is None else fit_discussions(discussions)
         )
 
         return attributes
