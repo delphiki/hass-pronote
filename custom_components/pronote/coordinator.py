@@ -104,6 +104,26 @@ def get_overall_average(period):
         return None
 
 
+def get_discussions(client):
+    """Fetch and format discussions.
+
+    Formatting happens here (and not in the sensor) because pronotepy
+    Discussion attributes are lazy: they need a live client, which is torn
+    down at the end of the coordinator refresh.
+    """
+    try:
+        discussions = client.discussions()
+    except Exception as ex:
+        _LOGGER.info("Error getting discussions from pronote: %s", ex)
+        return None
+
+    return [
+        format_discussion(discussion)
+        for discussion in discussions
+        if not set(discussion.labels) & {"Trash", "Drafts"}
+    ]
+
+
 class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     """Data update coordinator for the Pronote integration."""
 
@@ -146,6 +166,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "punishments": [],
             "menus": [],
             "information_and_surveys": [],
+            "discussions": [],
             "periods": [],
             "current_period": None,
             "previous_periods": [],
@@ -347,6 +368,11 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         except Exception as ex:
             self.data["information_and_surveys"] = None
             _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+
+        # Discussions
+        self.data["discussions"] = await self.hass.async_add_executor_job(
+            get_discussions, client
+        )
 
         # Absences
         self.data["absences"] = await self.hass.async_add_executor_job(

@@ -32,6 +32,7 @@
       "overall_average": { "default": "mdi:sigma" },
       "overall_average_period": { "default": "mdi:sigma" },
       "information_and_surveys": { "default": "mdi:message-alert-outline" },
+      "discussions": { "default": "mdi:forum-outline" },
       "ical_url": { "default": "mdi:calendar-export" },
       "next_alarm": { "default": "mdi:alarm" },
       "menus": { "default": "mdi:silverware-fork-knife" },

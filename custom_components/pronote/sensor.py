@@ -114,6 +114,7 @@ async def async_setup_entry(
         ),
         # generic sensors
         PronoteInformationAndSurveysSensor(coordinator),
+        PronoteDiscussionsSensor(coordinator),
         PronoteGenericSensor(
             coordinator, "ical_url", "Timetable iCal URL",
             translation_key="ical_url",
@@ -775,6 +776,46 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
 
         attributes["unread_count"] = unread_count
         attributes["information_and_surveys"] = information_and_surveys
+
+        return attributes
+
+
+class PronoteDiscussionsSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(
+            coordinator,
+            "discussions",
+            "Discussions",
+            translation_key="discussions",
+        )
+
+    @property
+    def native_value(self):
+        """Return the number of discussions.
+
+        Computed on every read, so the count follows the coordinator refreshes
+        instead of being frozen at entity creation time.
+        """
+        discussions = self.coordinator.data["discussions"]
+        if discussions is None:
+            return "unavailable"
+        return len(discussions)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = super().extra_state_attributes
+        discussions = self.coordinator.data["discussions"]
+
+        attributes["unread_count"] = (
+            None
+            if discussions is None
+            else sum(discussion["unread"] for discussion in discussions)
+        )
+        attributes["discussions"] = [] if discussions is None else discussions
 
         return attributes
 
