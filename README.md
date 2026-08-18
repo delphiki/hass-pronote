@@ -126,6 +126,24 @@ The state and `unread_count` always cover every discussion.
 A `pronote_event` of type `new_discussion` is fired when a discussion is created
 or receives a new message, which can be used to trigger a notification.
 
+Discussions can be marked read (or unread) without opening PRONOTE, with the
+`pronote.mark_discussions_as_read` service:
+
+```yaml
+service: pronote.mark_discussions_as_read
+target:
+  entity_id: sensor.pronote_lastname_firstname_discussions
+data:
+  subject: "Sortie scolaire"   # optional, every discussion when omitted
+  read: true                   # optional, defaults to true
+```
+
+Marking is a write to PRONOTE, and PRONOTE rotates the session token: the mark
+is therefore queued and applied by the coordinator on its own client, during a
+refresh triggered immediately by the call. Opening a second session in parallel
+would invalidate the one the integration uses. Targeting the whole device is
+safe: the service is a no-op on the other sensors.
+
 ## Cards
 
 Cards are available here: https://github.com/delphiki/lovelace-pronote

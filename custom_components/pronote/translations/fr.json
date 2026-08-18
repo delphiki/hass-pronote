@@ -97,5 +97,21 @@
         "calendar": {
             "timetable": { "name": "Emploi du temps de {child}" }
         }
+    },
+    "services": {
+        "mark_discussions_as_read": {
+            "name": "Marquer les discussions comme lues",
+            "description": "Marque les discussions PRONOTE comme lues ou non lues, pour tenir la messagerie à jour sans ouvrir PRONOTE.",
+            "fields": {
+                "subject": {
+                    "name": "Objet",
+                    "description": "Objet de la discussion à marquer. Laisser vide pour marquer toutes les discussions."
+                },
+                "read": {
+                    "name": "Lu",
+                    "description": "Marque comme lu si activé, comme non lu si désactivé."
+                }
+            }
+        }
     }
 }

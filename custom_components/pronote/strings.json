@@ -97,5 +97,21 @@
     "calendar": {
       "timetable": { "name": "{child}'s timetable" }
     }
+  },
+  "services": {
+    "mark_discussions_as_read": {
+      "name": "Mark discussions as read",
+      "description": "Marks PRONOTE discussions as read or unread, so the messaging tab can be kept up to date without opening PRONOTE.",
+      "fields": {
+        "subject": {
+          "name": "Subject",
+          "description": "Subject of the discussion to mark. Leave empty to mark every discussion."
+        },
+        "read": {
+          "name": "Read",
+          "description": "Mark as read when enabled, as unread when disabled."
+        }
+      }
+    }
   }
 }

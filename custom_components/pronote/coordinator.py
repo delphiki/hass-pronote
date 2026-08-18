@@ -119,7 +119,41 @@ def get_discussion_messages(discussion):
         return None
 
 
-def get_discussions(client):
+def apply_discussion_marks(client, discussions, pending_marks):
+    """Mark discussions as read/unread, then re-read them to refresh unread counts.
+
+    ``pending_marks`` is a list of (subject, read) tuples; a subject of None
+    applies to every discussion. Marking is a write to PRONOTE, so it runs on
+    the coordinator's own client: opening a second session in parallel would
+    rotate the token behind the coordinator's back.
+    """
+    marked = False
+    for discussion in discussions:
+        for subject, read in pending_marks:
+            if subject is not None and subject != discussion.subject:
+                continue
+            try:
+                discussion.mark_as(read)
+                marked = True
+            except Exception as ex:
+                _LOGGER.warning(
+                    "Error marking discussion (%s) as %s: %s",
+                    discussion.subject,
+                    "read" if read else "unread",
+                    ex,
+                )
+
+    if not marked:
+        return discussions
+
+    try:
+        return client.discussions()
+    except Exception as ex:
+        _LOGGER.info("Error getting discussions from pronote: %s", ex)
+        return None
+
+
+def get_discussions(client, pending_marks=None):
     """Fetch and format discussions, newest first.
 
     Formatting happens here (and not in the sensor) because pronotepy
@@ -135,6 +169,11 @@ def get_discussions(client):
     except Exception as ex:
         _LOGGER.info("Error getting discussions from pronote: %s", ex)
         return None
+
+    if pending_marks:
+        discussions = apply_discussion_marks(client, discussions, pending_marks)
+        if discussions is None:
+            return None
 
     formatted_discussions = []
     for discussion in discussions:
@@ -170,6 +209,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             ),
         )
         self.config_entry = entry
+        self.pending_discussion_marks = []
+
+    async def async_mark_discussions(self, subject=None, read=True):
+        """Queue a read/unread mark and refresh, applying it with a live client."""
+        self.pending_discussion_marks.append((subject, read))
+        await self.async_refresh()
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
@@ -400,8 +445,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
 
         # Discussions
+        pending_marks = self.pending_discussion_marks
+        self.pending_discussion_marks = []
         self.data["discussions"] = await self.hass.async_add_executor_job(
-            get_discussions, client
+            get_discussions, client, pending_marks
         )
         # Discussions are already formatted, hence the identity formatter.
         self.compare_data(

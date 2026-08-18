@@ -5,6 +5,8 @@ from homeassistant.const import Platform
 DOMAIN = "pronote"
 EVENT_TYPE = "pronote_event"
 
+SERVICE_MARK_DISCUSSIONS = "mark_discussions_as_read"
+
 LESSON_MAX_DAYS = 15
 LESSON_NEXT_DAY_SEARCH_LIMIT = 30
 HOMEWORK_MAX_DAYS = 15

@@ -1,0 +1,16 @@
+mark_discussions_as_read:
+  target:
+    entity:
+      integration: pronote
+      domain: sensor
+  fields:
+    subject:
+      required: false
+      example: "Matin en forêt"
+      selector:
+        text:
+    read:
+      required: false
+      default: true
+      selector:
+        boolean:

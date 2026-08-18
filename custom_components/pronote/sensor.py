@@ -1,5 +1,8 @@
+import voluptuous as vol
+
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import slugify as ha_slugify
@@ -22,6 +25,7 @@ from .server_status import PronoteServerStatusSensor, get_pronote_base_url
 
 from .const import (
     DOMAIN,
+    SERVICE_MARK_DISCUSSIONS,
     GRADES_TO_DISPLAY,
     EVALUATIONS_TO_DISPLAY,
     DISCUSSIONS_ATTRIBUTE_MAX_BYTES,
@@ -237,6 +241,15 @@ async def async_setup_entry(
 
     async_add_entities(sensors, False)
 
+    entity_platform.async_get_current_platform().async_register_entity_service(
+        SERVICE_MARK_DISCUSSIONS,
+        {
+            vol.Optional("subject"): cv.string,
+            vol.Optional("read", default=True): cv.boolean,
+        },
+        "async_mark_discussions",
+    )
+
 
 class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
@@ -313,6 +326,13 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
                 self.coordinator.last_update_success
                 and self.coordinator.data[self._coordinator_key] is not None
         )
+
+    async def async_mark_discussions(self, subject=None, read=True):
+        """Do nothing: only the discussions sensor acts on this service.
+
+        Defined here so that targeting the whole device (or several Pronote
+        entities at once) is a no-op on the other sensors instead of an error.
+        """
 
 
 class PronotePeriodRelatedSensor(PronoteGenericSensor):
@@ -841,6 +861,15 @@ class PronoteDiscussionsSensor(PronoteGenericSensor):
         )
 
         return attributes
+
+    async def async_mark_discussions(self, subject=None, read=True):
+        """Mark discussions as read/unread in PRONOTE.
+
+        Without a subject, every discussion is marked. The mark is applied
+        during the next refresh, which is triggered right away, so the entity
+        reflects PRONOTE once the call returns.
+        """
+        await self.coordinator.async_mark_discussions(subject=subject, read=read)
 
 
 class PronoteCurrentPeriodSensor(PronoteGenericSensor):
