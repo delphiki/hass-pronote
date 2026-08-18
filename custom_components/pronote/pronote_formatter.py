@@ -6,6 +6,8 @@ from slugify import slugify
 
 from .const import (
     HOMEWORK_DESC_MAX_LENGTH,
+    DISCUSSION_MESSAGES_TO_DISPLAY,
+    DISCUSSION_CONTENT_MAX_LENGTH,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -237,13 +239,37 @@ def format_information_and_survey(information_and_survey) -> dict:
     }
 
 
-def format_discussion(discussion) -> dict:
+def format_discussion_message(message) -> dict:
+    return {
+        "author": message.author,
+        "date": message.created,
+        "seen": message.seen,
+        "content": (message.content or "")[0:DISCUSSION_CONTENT_MAX_LENGTH],
+    }
+
+
+def format_discussion(discussion, messages=None) -> dict:
+    """Format a discussion, optionally with the messages it contains.
+
+    ``messages`` is passed in (and not read from ``discussion.messages``)
+    because resolving it performs an HTTP request, which belongs to the
+    coordinator.
+    """
+    formatted_messages = [format_discussion_message(m) for m in messages or []]
+    last_message = formatted_messages[-1] if formatted_messages else None
+
     return {
         "subject": discussion.subject,
         "creator": discussion.creator,
         "unread": discussion.unread,
         "closed": discussion.closed,
         "labels": discussion.labels,
+        "date": formatted_messages[0]["date"] if formatted_messages else None,
+        "last_message_date": last_message["date"] if last_message else None,
+        "last_message_author": last_message["author"] if last_message else None,
+        "last_message": last_message["content"] if last_message else None,
+        "messages_count": len(formatted_messages),
+        "messages": formatted_messages[-DISCUSSION_MESSAGES_TO_DISPLAY:],
     }
 
 

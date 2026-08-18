@@ -98,6 +98,28 @@ For each previous period (e.g. `trimestre_1`), the following sensors are also cr
 
 The sensors are updated every 15 minutes.
 
+### Discussions
+
+The `discussions` sensor exposes the PRONOTE messaging tab ("Communication").
+Its state is the number of discussions, excluding trashed ones and drafts.
+
+| Attribute      | Description                                                        |
+|----------------|--------------------------------------------------------------------|
+| `unread_count` | total number of unread messages, across every discussion            |
+| `discussions`  | the 10 most recent discussions, newest first                        |
+
+Each entry of `discussions` holds `subject`, `creator`, `unread`, `closed`,
+`labels`, `messages_count`, `date` (first message), `last_message_date`,
+`last_message_author`, `last_message`, and `messages` (the last 3, each capped
+at 200 characters). `author` is `null` when you are the author of the message.
+
+Reading the messages of a discussion costs one request per discussion, so they
+are only loaded for the 10 most recent ones; older discussions keep their
+metadata without content.
+
+A `pronote_event` of type `new_discussion` is fired when a discussion is created
+or receives a new message, which can be used to trigger a notification.
+
 ## Cards
 
 Cards are available here: https://github.com/delphiki/lovelace-pronote

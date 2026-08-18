@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
     GRADES_TO_DISPLAY,
     EVALUATIONS_TO_DISPLAY,
+    DISCUSSIONS_TO_DISPLAY,
     DEFAULT_LUNCH_BREAK_TIME,
 )
 
@@ -810,12 +811,16 @@ class PronoteDiscussionsSensor(PronoteGenericSensor):
         attributes = super().extra_state_attributes
         discussions = self.coordinator.data["discussions"]
 
+        # Counted over every discussion, but only the most recent ones are
+        # exposed: attributes above 16 KiB are dropped by Home Assistant.
         attributes["unread_count"] = (
             None
             if discussions is None
             else sum(discussion["unread"] for discussion in discussions)
         )
-        attributes["discussions"] = [] if discussions is None else discussions
+        attributes["discussions"] = (
+            [] if discussions is None else discussions[0:DISCUSSIONS_TO_DISPLAY]
+        )
 
         return attributes
 

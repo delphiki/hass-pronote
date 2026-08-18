@@ -25,6 +25,7 @@ from .const import (
     LESSON_NEXT_DAY_SEARCH_LIMIT,
     HOMEWORK_MAX_DAYS,
     INFO_SURVEY_LIMIT_MAX_DAYS,
+    DISCUSSIONS_TO_LOAD,
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
@@ -104,12 +105,30 @@ def get_overall_average(period):
         return None
 
 
+def get_discussion_messages(discussion):
+    """Return the messages of a discussion, or None when they can't be read.
+
+    Reading ``discussion.messages`` performs one HTTP request.
+    """
+    try:
+        return discussion.messages
+    except Exception as ex:
+        _LOGGER.info(
+            "Error getting messages of discussion (%s): %s", discussion.subject, ex
+        )
+        return None
+
+
 def get_discussions(client):
-    """Fetch and format discussions.
+    """Fetch and format discussions, newest first.
 
     Formatting happens here (and not in the sensor) because pronotepy
     Discussion attributes are lazy: they need a live client, which is torn
     down at the end of the coordinator refresh.
+
+    Messages are only loaded for the first DISCUSSIONS_TO_LOAD discussions
+    (PRONOTE returns them newest first), to keep the number of requests per
+    refresh bounded. Older discussions keep their metadata, without content.
     """
     try:
         discussions = client.discussions()
@@ -117,11 +136,22 @@ def get_discussions(client):
         _LOGGER.info("Error getting discussions from pronote: %s", ex)
         return None
 
-    return [
-        format_discussion(discussion)
-        for discussion in discussions
-        if not set(discussion.labels) & {"Trash", "Drafts"}
-    ]
+    formatted_discussions = []
+    for discussion in discussions:
+        if set(discussion.labels) & {"Trash", "Drafts"}:
+            continue
+        messages = (
+            get_discussion_messages(discussion)
+            if len(formatted_discussions) < DISCUSSIONS_TO_LOAD
+            else None
+        )
+        formatted_discussions.append(format_discussion(discussion, messages))
+
+    return sorted(
+        formatted_discussions,
+        key=lambda discussion: discussion["last_message_date"] or datetime.min,
+        reverse=True,
+    )
 
 
 class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
@@ -372,6 +402,14 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Discussions
         self.data["discussions"] = await self.hass.async_add_executor_job(
             get_discussions, client
+        )
+        # Discussions are already formatted, hence the identity formatter.
+        self.compare_data(
+            previous_data,
+            "discussions",
+            ["subject", "last_message_date"],
+            "new_discussion",
+            lambda discussion: discussion,
         )
 
         # Absences
