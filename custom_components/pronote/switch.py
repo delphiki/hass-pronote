@@ -136,6 +136,7 @@ class PronoteDiscussionSwitch(CoordinatorEntity, SwitchEntity):
     def extra_state_attributes(self):
         discussion = self._discussion or {}
         return {
+            "subject": discussion.get("subject"),
             "creator": discussion.get("creator"),
             "unread": discussion.get("unread"),
             "last_message_date": discussion.get("last_message_date"),
