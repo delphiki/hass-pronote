@@ -144,6 +144,17 @@ refresh triggered immediately by the call. Opening a second session in parallel
 would invalidate the one the integration uses. Targeting the whole device is
 safe: the service is a no-op on the other sensors.
 
+Each discussion also gets its own switch, named after its subject:
+
+| State | Meaning                                                            |
+|-------|--------------------------------------------------------------------|
+| on    | the discussion is read; turning it off marks it unread in PRONOTE   |
+| off   | the discussion has unread messages; turning it on marks it read     |
+
+Switches are created and removed as discussions come and go, so the entity
+registry stays in step with the messaging tab. They are left untouched when a
+refresh fails, to avoid deleting entities on a transient error.
+
 ## Cards
 
 Cards are available here: https://github.com/delphiki/lovelace-pronote
