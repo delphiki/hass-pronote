@@ -35,5 +35,8 @@ DISCUSSIONS_ATTRIBUTE_MAX_BYTES = 12000
 DEFAULT_REFRESH_INTERVAL = 15
 DEFAULT_ALARM_OFFSET = 60
 DEFAULT_LUNCH_BREAK_TIME = "13:00"
+# The messaging tab belongs to the account, not to a child: with several
+# children, every entry would otherwise expose the same discussions.
+DEFAULT_DISCUSSIONS_ENABLED = True
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.SWITCH]

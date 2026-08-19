@@ -29,6 +29,7 @@ from .const import (
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
+    DEFAULT_DISCUSSIONS_ENABLED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -444,12 +445,20 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["information_and_surveys"] = None
             _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
 
-        # Discussions
-        pending_marks = self.pending_discussion_marks
-        self.pending_discussion_marks = []
-        self.data["discussions"] = await self.hass.async_add_executor_job(
-            get_discussions, client, pending_marks
-        )
+        # Discussions. The messaging tab belongs to the account rather than to a
+        # child, so every entry of a parent account would report the same
+        # discussions; the option lets them be exposed by a single entry.
+        if self.config_entry.options.get(
+                "discussions", DEFAULT_DISCUSSIONS_ENABLED
+        ):
+            pending_marks = self.pending_discussion_marks
+            self.pending_discussion_marks = []
+            self.data["discussions"] = await self.hass.async_add_executor_job(
+                get_discussions, client, pending_marks
+            )
+        else:
+            self.pending_discussion_marks = []
+            self.data["discussions"] = None
         # Discussions are already formatted, hence the identity formatter.
         self.compare_data(
             previous_data,

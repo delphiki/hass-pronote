@@ -3,6 +3,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import config_validation as cv, entity_platform
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import slugify as ha_slugify
@@ -30,6 +31,7 @@ from .const import (
     EVALUATIONS_TO_DISPLAY,
     DISCUSSIONS_ATTRIBUTE_MAX_BYTES,
     DEFAULT_LUNCH_BREAK_TIME,
+    DEFAULT_DISCUSSIONS_ENABLED,
 )
 
 
@@ -137,7 +139,6 @@ async def async_setup_entry(
         ),
         # generic sensors
         PronoteInformationAndSurveysSensor(coordinator),
-        PronoteDiscussionsSensor(coordinator),
         PronoteGenericSensor(
             coordinator, "ical_url", "Timetable iCal URL",
             translation_key="ical_url",
@@ -238,6 +239,16 @@ async def async_setup_entry(
                 ),
             ]
         )
+
+    if config_entry.options.get("discussions", DEFAULT_DISCUSSIONS_ENABLED):
+        sensors.append(PronoteDiscussionsSensor(coordinator))
+    else:
+        registry = er.async_get(hass)
+        entity_id = registry.async_get_entity_id(
+            "sensor", DOMAIN, f"{DOMAIN}_{coordinator.data['sensor_prefix']}_Discussions"
+        )
+        if entity_id:
+            registry.async_remove(entity_id)
 
     async_add_entities(sensors, False)
 

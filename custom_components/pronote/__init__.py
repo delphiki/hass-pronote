@@ -87,4 +87,7 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
         minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
     )
 
+    # Some options add or remove entities, which only a reload can apply.
+    await hass.config_entries.async_reload(entry.entry_id)
+
     return True

@@ -103,6 +103,12 @@ The sensors are updated every 15 minutes.
 The `discussions` sensor exposes the PRONOTE messaging tab ("Communication").
 Its state is the number of discussions, excluding trashed ones and drafts.
 
+The messaging tab belongs to the **account**, not to a child: on a parent
+account with several children, every entry reports the very same discussions.
+The `discussions` option (Settings > Devices & services > Pronote > Configure)
+lets them be exposed by a single entry; disabling it removes the sensor and the
+switches of that entry, and skips the requests altogether.
+
 | Attribute      | Description                                                        |
 |----------------|--------------------------------------------------------------------|
 | `unread_count` | total number of unread messages, across every discussion            |

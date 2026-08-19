@@ -49,6 +49,7 @@ from .pronote_helper import *
 from pronotepy.ent import *
 
 from .const import (
+    DEFAULT_DISCUSSIONS_ENABLED,
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
@@ -313,6 +314,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             "alarm_offset", DEFAULT_ALARM_OFFSET
                         ),
                     ): int,
+                    vol.Optional(
+                        "discussions",
+                        default=config_entry.options.get(
+                            "discussions", DEFAULT_DISCUSSIONS_ENABLED
+                        ),
+                    ): bool,
                 }
             ),
         )

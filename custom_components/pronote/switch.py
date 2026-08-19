@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify as ha_slugify
 
-from .const import DOMAIN
+from .const import DEFAULT_DISCUSSIONS_ENABLED, DOMAIN
 from .coordinator import PronoteDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,10 +37,19 @@ async def async_setup_entry(
         config_entry.entry_id
     ]["coordinator"]
 
+    registry = er.async_get(hass)
+
+    if not config_entry.options.get("discussions", DEFAULT_DISCUSSIONS_ENABLED):
+        # This entry does not expose discussions: drop the switches a previous
+        # configuration may have left behind, rather than leaving them dangling.
+        for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+            if entry.domain == "switch":
+                registry.async_remove(entry.entity_id)
+        return
+
     if coordinator.data is None:
         return
 
-    registry = er.async_get(hass)
 
     # Unique ids of the entities this setup has created. It starts out empty on
     # every start: registry entries are not live entities, they only carry the
