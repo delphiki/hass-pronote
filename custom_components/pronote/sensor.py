@@ -811,21 +811,17 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = super().extra_state_attributes
-        information_and_surveys = []
-        unread_count = None
-        if not self.coordinator.data["information_and_surveys"] is None:
-            unread_count = 0
-            for information_and_survey in self.coordinator.data[
-                "information_and_surveys"
-            ]:
-                information_and_surveys.append(
-                    format_information_and_survey(information_and_survey)
-                )
-                if information_and_survey.read is False:
-                    unread_count += 1
+        # Already formatted by the coordinator, which holds a live client.
+        informations = self.coordinator.data["information_and_surveys"]
 
-        attributes["unread_count"] = unread_count
-        attributes["information_and_surveys"] = information_and_surveys
+        attributes["unread_count"] = (
+            None
+            if informations is None
+            else sum(1 for information in informations if information["read"] is False)
+        )
+        attributes["information_and_surveys"] = (
+            [] if informations is None else informations
+        )
 
         return attributes
 

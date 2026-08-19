@@ -106,6 +106,54 @@ def get_overall_average(period):
         return None
 
 
+def apply_information_marks(informations, pending_marks):
+    """Mark informations as read/unread. Returns True if anything was marked."""
+    marked = False
+    by_id = {information.id: information for information in informations}
+    for information_id, read in pending_marks:
+        information = by_id.get(information_id)
+        if information is None:
+            continue
+        try:
+            information.mark_as_read(read)
+            marked = True
+        except Exception as ex:
+            _LOGGER.warning(
+                "Error marking information (%s) as %s: %s",
+                information.title,
+                "read" if read else "unread",
+                ex,
+            )
+    return marked
+
+
+def get_information_and_surveys(client, date_from, pending_marks=None):
+    """Fetch informations and surveys, and format them.
+
+    Formatting happens here because pronotepy resolves the content lazily
+    through a live client, which is torn down at the end of the refresh.
+    """
+    try:
+        informations = client.information_and_surveys(date_from)
+    except Exception as ex:
+        _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+        return None
+
+    if pending_marks and apply_information_marks(informations, pending_marks):
+        try:
+            informations = client.information_and_surveys(date_from)
+        except Exception as ex:
+            _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+            return None
+
+    return [
+        format_information_and_survey(information)
+        for information in sorted(
+            informations, key=lambda i: i.creation_date, reverse=True
+        )
+    ]
+
+
 def get_discussion_messages(discussion):
     """Return the messages of a discussion, or None when they can't be read.
 
@@ -211,6 +259,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         )
         self.config_entry = entry
         self.pending_discussion_marks = []
+        self.pending_information_marks = []
+
+    async def async_mark_information(self, information_id, read=True):
+        """Queue a read/unread mark and refresh, applying it with a live client."""
+        self.pending_information_marks.append((information_id, read))
+        await self.async_refresh()
 
     async def async_mark_discussions(self, subject=None, read=True):
         """Queue a read/unread mark and refresh, applying it with a live client."""
@@ -430,20 +484,14 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
         # Information and Surveys
-        try:
-            date_from = datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS), datetime.min.time())
-            information_and_surveys = await self.hass.async_add_executor_job(
-                client.information_and_surveys,
-                date_from,
-            )
-            self.data["information_and_surveys"] = sorted(
-                information_and_surveys,
-                key=lambda information_and_survey: information_and_survey.creation_date,
-                reverse=True,
-            )
-        except Exception as ex:
-            self.data["information_and_surveys"] = None
-            _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+        date_from = datetime.combine(
+            today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS), datetime.min.time()
+        )
+        information_marks = self.pending_information_marks
+        self.pending_information_marks = []
+        self.data["information_and_surveys"] = await self.hass.async_add_executor_job(
+            get_information_and_surveys, client, date_from, information_marks
+        )
 
         # Discussions. The messaging tab belongs to the account rather than to a
         # child, so every entry of a parent account would report the same

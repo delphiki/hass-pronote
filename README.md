@@ -161,6 +161,11 @@ Switches are created and removed as discussions come and go, so the entity
 registry stays in step with the messaging tab. They are left untouched when a
 refresh fails, to avoid deleting entities on a transient error.
 
+Informations and surveys get the same treatment: one switch each, named after
+their title, where on means read. They carry a `kind` attribute (`discussion`
+or `information`) to tell the two families apart in dashboard filters, along
+with `author`, `category`, `survey`, `creation_date` and the full `content`.
+
 ## Cards
 
 Cards are available here: https://github.com/delphiki/lovelace-pronote

@@ -223,6 +223,7 @@ def format_menu(menu) -> dict:
 
 def format_information_and_survey(information_and_survey) -> dict:
     return {
+        "id": information_and_survey.id,
         "author": information_and_survey.author,
         "title": information_and_survey.title,
         "read": information_and_survey.read,
