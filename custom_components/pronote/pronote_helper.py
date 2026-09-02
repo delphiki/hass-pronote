@@ -29,6 +29,12 @@ autoslot.assignments_to_self = assignments_to_self
 ### End Hotfix
 
 import pronotepy
+
+### Hotfix for pronotepy 2.15.6 login on migrated PRONOTE instances
+### https://github.com/delphiki/hass-pronote/issues/172
+from . import pronotepy_hotfix  # noqa: F401
+### End Hotfix
+
 import json
 import logging
 import re
