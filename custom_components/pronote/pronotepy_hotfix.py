@@ -91,20 +91,25 @@ def _login(self) -> bool:
         dec = e.aes_decrypt(bytes.fromhex(challenge))
         dec_no_alea = _enleverAlea(dec.decode())
         ch = e.aes_encrypt(dec_no_alea.encode()).hex()
-    except CryptoError as ex:
+    except (CryptoError, ValueError) as ex:
+        # ValueError catches the UnicodeDecodeError raised when unpadding
+        # happens to succeed on the garbage bytes a migrated instance yields:
+        # decrypting its challenge with the derived key is meaningless, so the
+        # last byte is a valid padding length once in a while.
         if self.login_mode == "qr_code":
-            ex.args += (
-                "exception happened during login -> probably the qr code has expired (qr code is valid during 10 minutes)",
-            )
+            hint = "exception happened during login -> probably the qr code has expired (qr code is valid during 10 minutes)"
         else:
-            ex.args += (
-                "exception happened during login -> probably bad username/password",
-            )
+            hint = "exception happened during login -> probably bad username/password"
+        if isinstance(ex, CryptoError):
+            ex.args += (hint,)
+            challenge_error = ex
+        else:
+            challenge_error = CryptoError(str(ex), hint)
         # Migrated PRONOTE instances do not use the alea anymore, they expect
         # the raw challenge to be re-encrypted as is. Try that before giving
         # up, and keep the error around so that it can still be raised (with
         # its helpful message) if the authentification below fails anyway.
-        challenge_error = ex
+        log.debug("challenge decryption failed, falling back to the raw challenge")
         ch = e.aes_encrypt(challenge.encode()).hex()
 
     # send
