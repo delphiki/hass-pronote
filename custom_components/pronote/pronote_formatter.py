@@ -230,10 +230,10 @@ def format_information_and_survey(information_and_survey) -> dict:
         "category": information_and_survey.category,
         "survey": information_and_survey.survey,
         "anonymous_response": information_and_survey.anonymous_response,
-        "attachments": format_attachment_list(information_and_survey.attachments),
+        "attachments": format_attachment_list(information_and_survey.attachments()),
         "template": information_and_survey.template,
         "shared_template": information_and_survey.shared_template,
-        "content": information_and_survey.content,
+        "content": information_and_survey.content(),
     }
 
 
