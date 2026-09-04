@@ -85,6 +85,7 @@
       "overall_average": { "name": "Overall average" },
       "overall_average_period": { "name": "Overall average {period}" },
       "information_and_surveys": { "name": "Information and surveys" },
+      "discussions": { "name": "Discussions" },
       "ical_url": { "name": "Timetable iCal URL" },
       "next_alarm": { "name": "Next alarm" },
       "menus": { "name": "Menus" },
