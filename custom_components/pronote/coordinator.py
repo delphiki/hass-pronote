@@ -195,6 +195,11 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         try:
             return await self._fetch_data(client, today, previous_data)
         finally:
+            # A refresh() during the update rotates the token again
+            try:
+                await self._save_credentials(client)
+            except Exception as ex:
+                _LOGGER.warning("Error saving pronote credentials: %s", ex)
             try:
                 if hasattr(client, 'session') and client.session is not None:
                     await self.hass.async_add_executor_job(client.session.close)
@@ -203,11 +208,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             # Clear the class-level set that accumulates every Period ever created
             PronotePeriod.instances.clear()
 
-    async def _fetch_data(self, client, today, previous_data):
-        """Fetch all data from Pronote client."""
-        config_data = self.config_entry.data
-
-        # Save possibly refreshed credentials
+    async def _save_credentials(self, client):
         new_creds = await self.hass.async_add_executor_job(client.export_credentials)
         new_data = self.config_entry.data.copy()
         new_data.update({k: v for k, v in new_creds.items() 
@@ -219,7 +220,14 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             new_data["qr_code_uuid"] = new_creds["uuid"]
         
         self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
-        
+
+    async def _fetch_data(self, client, today, previous_data):
+        """Fetch all data from Pronote client."""
+        config_data = self.config_entry.data
+
+        # Save possibly refreshed credentials
+        await self._save_credentials(client)
+
         child_info = client.info
 
         if config_data["account_type"] == "parent":
