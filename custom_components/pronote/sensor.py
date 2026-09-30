@@ -321,16 +321,20 @@ class PronotePeriodRelatedSensor(PronoteGenericSensor):
             translation_placeholders=translation_placeholders,
         )
         self._period_key = period_key
-        self._is_current_period = period_key == slugify(
-            coordinator.data["current_period"].name, separator="_"
-        )
+        # Current period sensors (no period suffix) follow the period changes
+        self._follows_current_period = not key.endswith(f"_{period_key}")
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = super().extra_state_attributes
-        attributes["period_key"] = self._period_key
-        attributes["is_current_period"] = self._is_current_period
+        current_period = self.coordinator.data["current_period"]
+        current_period_key = (
+            slugify(current_period.name, separator="_") if current_period else None
+        )
+        period_key = current_period_key if self._follows_current_period else self._period_key
+        attributes["period_key"] = period_key
+        attributes["is_current_period"] = period_key == current_period_key
 
         return attributes
 
