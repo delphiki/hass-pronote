@@ -269,12 +269,15 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        if self.coordinator.data[self._coordinator_key] is None:
+        value = self.coordinator.data[self._coordinator_key]
+        if value is None:
             return "unavailable"
-        elif self._state is not None:
-            return self._state
-        else:
-            return self.coordinator.data[self._coordinator_key]
+        # Computed from the current data, _state was set once at setup
+        if isinstance(value, (list, tuple, dict)):
+            return len(value)
+        if isinstance(value, (str, int, float, datetime)):
+            return value
+        return self._state
 
     @property
     def extra_state_attributes(self):
