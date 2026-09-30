@@ -372,9 +372,20 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Information and Surveys
         try:
             date_from = datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS), datetime.min.time())
+
+            def _get_information_and_surveys():
+                # Fetch content while the client is alive, the formatter reads pronotepy's cache
+                information_and_surveys = client.information_and_surveys(date_from)
+                for information_and_survey in information_and_surveys:
+                    try:
+                        information_and_survey.content()
+                        information_and_survey.attachments()
+                    except Exception as ex:
+                        _LOGGER.info("Error getting information content from pronote: %s", ex)
+                return information_and_surveys
+
             information_and_surveys = await self.hass.async_add_executor_job(
-                client.information_and_surveys,
-                date_from,
+                _get_information_and_surveys
             )
             self.data["information_and_surveys"] = sorted(
                 information_and_surveys,
