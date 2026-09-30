@@ -33,7 +33,28 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def get_current_period(client):
+    """Current period, falling back on client.periods for parent accounts."""
+    try:
+        return client.current_period
+    except Exception as ex:
+        _LOGGER.info("Error getting current period from pronote: %s", ex)
+    now = datetime.now()
+    try:
+        periods = [p for p in client.periods if p.start <= now <= p.end]
+    except Exception as ex:
+        _LOGGER.info("Error getting periods from pronote: %s", ex)
+        return None
+    for period_type in ("trimestre", "semestre"):
+        for period in periods:
+            if period.name.lower().startswith(period_type):
+                return period
+    return periods[0] if periods else None
+
+
 def get_grades(period):
+    if period is None:
+        return None
     try:
         grades = period.grades
         return sorted(grades, key=lambda grade: grade.date, reverse=True)
@@ -43,6 +64,8 @@ def get_grades(period):
 
 
 def get_absences(period):
+    if period is None:
+        return None
     try:
         absences = period.absences
         return sorted(absences, key=lambda absence: absence.from_date, reverse=True)
@@ -52,6 +75,8 @@ def get_absences(period):
 
 
 def get_delays(period):
+    if period is None:
+        return None
     try:
         delays = period.delays
         return sorted(delays, key=lambda delay: delay.date, reverse=True)
@@ -61,6 +86,8 @@ def get_delays(period):
 
 
 def get_averages(period):
+    if period is None:
+        return None
     try:
         averages = period.averages
         return averages
@@ -70,6 +97,8 @@ def get_averages(period):
 
 
 def get_punishments(period):
+    if period is None:
+        return None
     try:
         punishments = period.punishments
         return sorted(
@@ -83,6 +112,8 @@ def get_punishments(period):
 
 
 def get_evaluations(period):
+    if period is None:
+        return None
     try:
         evaluations = period.evaluations
         evaluations = sorted(evaluations, key=lambda evaluation: (evaluation.name))
@@ -95,6 +126,8 @@ def get_evaluations(period):
 
 
 def get_overall_average(period):
+    if period is None:
+        return None
     try:
         return period.overall_average
     except Exception as ex:
@@ -199,6 +232,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data["child_info"] = child_info
         self.data["sensor_prefix"] = re.sub("[^A-Za-z]", "_", child_info.name.lower())
 
+        current_period = await self.hass.async_add_executor_job(
+            get_current_period, client
+        )
+
         # Lessons
         try:
             lessons_today = await self.hass.async_add_executor_job(
@@ -296,7 +333,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Grades
         self.data["grades"] = await self.hass.async_add_executor_job(
-            get_grades, client.current_period
+            get_grades, current_period
         )
         self.compare_data(
             previous_data,
@@ -308,7 +345,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Averages
         self.data["averages"] = await self.hass.async_add_executor_job(
-            get_averages, client.current_period
+            get_averages, current_period
         )
 
         # Homework (pre-format to avoid accessing _client after strip)
@@ -350,7 +387,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Absences
         self.data["absences"] = await self.hass.async_add_executor_job(
-            get_absences, client.current_period
+            get_absences, current_period
         )
         self.compare_data(
             previous_data, "absences", ["from", "to"], "new_absence", format_absence
@@ -358,7 +395,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Delays
         self.data["delays"] = await self.hass.async_add_executor_job(
-            get_delays, client.current_period
+            get_delays, current_period
         )
         self.compare_data(
             previous_data, "delays", ["date", "minutes"], "new_delay", format_delay
@@ -366,7 +403,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Evaluations
         self.data["evaluations"] = await self.hass.async_add_executor_job(
-            get_evaluations, client.current_period
+            get_evaluations, current_period
         )
         self.compare_data(
             previous_data,
@@ -378,7 +415,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Punishments
         self.data["punishments"] = await self.hass.async_add_executor_job(
-            get_punishments, client.current_period
+            get_punishments, current_period
         )
 
         # iCal
@@ -400,7 +437,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Overall average
         self.data["overall_average"] = await self.hass.async_add_executor_job(
-            get_overall_average, client.current_period
+            get_overall_average, current_period
         )
 
         # Periods
@@ -411,7 +448,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         except Exception as ex:
             _LOGGER.info("Error getting periods from pronote: %s", ex)
         try:
-            raw_current_period = client.current_period
+            raw_current_period = current_period
             self.data["current_period_key"] = slugify(
                 raw_current_period.name, separator="_"
             )
