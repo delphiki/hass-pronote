@@ -163,8 +163,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             return await self._fetch_data(client, today, previous_data)
         finally:
             try:
-                if hasattr(client, 'session') and client.session is not None:
-                    await self.hass.async_add_executor_job(client.session.close)
+                await self.hass.async_add_executor_job(client.communication.session.close)
             except Exception:
                 pass
             # Clear the class-level set that accumulates every Period ever created
