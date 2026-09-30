@@ -173,9 +173,42 @@ def _login(self) -> bool:
         return False
 
 
+def _information_fetch_content(self) -> None:
+    """Upstream 2.15.6 implementation, with the user's genre instead of a hardcoded 4.
+
+    On parent accounts (genre 5), PRONOTE rejects the request with
+    "La page a expiré !" and pronotepy calls refresh(), a full re-login.
+    """
+    if self._raw_content is not None:
+        return
+
+    genre = self._client.info.raw_resource.get("G", 4)
+    resp = self._client.post(
+        "PageActualites",
+        8,
+        {
+            "actualite": {
+                "N": self.id,
+                "genrePublic": genre,
+                "public": {
+                    "N": self._client.info.id,
+                    "G": genre,
+                },
+            },
+            "genreRequeteActualite": 1,
+            "modeAffActu": 0,
+        },
+    )
+
+    self._raw_content = resp["dataSec"]["data"]["detailsActualite"][
+        "listeQuestions"
+    ]["V"]
+
+
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
-    _LOGGER.debug("pronotepy login hotfix applied")
+    dataClasses.Information._fetch_content = _information_fetch_content
+    _LOGGER.debug("pronotepy hotfixes applied")
 else:
     _LOGGER.warning(
         "pronotepy login hotfix not applied: expected version %s, got %s. "
