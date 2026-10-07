@@ -46,6 +46,23 @@ def format_lesson(lesson, lunch_break_time):
         "is_afternoon": lesson.start.time() >= lunch_break_time,
     }
 
+def format_compact_lesson(lesson, lunch_break_time):
+    """Compact representation of a lesson for long-range timetable sensors.
+
+    Only keep timing and label fields to reduce attribute size.
+    """
+    return {
+        "start_at": lesson.start,
+        "end_at": lesson.end,
+        "start_time": lesson.start.strftime("%H:%M"),
+        "end_time": lesson.end.strftime("%H:%M"),
+        "lesson": format_displayed_lesson(lesson),
+        "classroom": lesson.classroom,
+        "canceled": lesson.canceled,
+        "status": lesson.status,
+        "is_morning": lesson.start.time() < lunch_break_time,
+        "is_afternoon": lesson.start.time() >= lunch_break_time,
+    }
 
 def format_attachment_list(attachments):
     return [
