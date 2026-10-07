@@ -10,7 +10,7 @@
   "issue_tracker": "https://github.com/delphiki/hass-pronote/issues",
   "requirements": [
     "pronotepy==2.15.6",
-    "python-slugify==8.0.4"
+    "python-slugify==9.1.2"
   ],
   "version": "0.15.5"
 }
