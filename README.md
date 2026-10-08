@@ -77,6 +77,7 @@ This integration provides several sensors, always prefixed with `pronote_LASTNAM
 | `[...]_delays`                            | delays (current period)                              |
 | `[...]_overall_average`                   | overall average (current period)                     |
 | `[...]_information_and_surveys`           | information and surveys                              |
+| `[...]_discussions`                       | discussions (messaging): count, unread messages       |
 | `[...]_menus`                             | menus (if available)                                 |
 | `[...]_current_period`                    | current period name and dates                        |
 | `[...]_periods`                           | list of all periods                                  |

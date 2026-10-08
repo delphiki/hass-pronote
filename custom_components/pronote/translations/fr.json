@@ -85,6 +85,7 @@
             "overall_average": { "name": "Moyenne générale" },
             "overall_average_period": { "name": "Moyenne générale {period}" },
             "information_and_surveys": { "name": "Informations et sondages" },
+            "discussions": { "name": "Discussions" },
             "ical_url": { "name": "URL iCal de l'emploi du temps" },
             "next_alarm": { "name": "Prochaine alarme" },
             "menus": { "name": "Menus" },
