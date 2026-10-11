@@ -47,6 +47,7 @@ _LOGGER = logging.getLogger(__name__)
 # - invalid PIN
 AUTH_ERRORS = (pronotepy.exceptions.CryptoError, pronotepy.exceptions.MFAError)
 
+
 def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
     _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
 
