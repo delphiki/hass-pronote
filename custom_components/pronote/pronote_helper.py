@@ -41,6 +41,11 @@ import re
 
 _LOGGER = logging.getLogger(__name__)
 
+# Errors meaning Pronote rejected auth and not just server failures :
+# - wrong password
+# - expired token
+# - invalid PIN
+AUTH_ERRORS = (pronotepy.exceptions.CryptoError, pronotepy.exceptions.MFAError)
 
 def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
     _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
@@ -95,6 +100,8 @@ def get_client_from_username_password(
         del ent
         del client.account_pin
         _LOGGER.info(client.info.name)
+    except AUTH_ERRORS:
+        raise
     except Exception as err:
         _LOGGER.critical(err)
         return None

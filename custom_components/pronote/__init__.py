@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from datetime import timedelta
 
@@ -40,6 +41,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = PronoteDataUpdateCoordinator(hass, entry)
 
     await coordinator.async_refresh()
+
+    # Stop polling if credentials are rejected
+    if isinstance(coordinator.last_exception, ConfigEntryAuthFailed):
+        raise coordinator.last_exception
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,

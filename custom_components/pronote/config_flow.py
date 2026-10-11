@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 import uuid
 
@@ -144,7 +145,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if client is None:
                     raise InvalidAuth
-            except pronotepy.exceptions.CryptoError:
+            except AUTH_ERRORS:
                 errors["base"] = "invalid_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
@@ -255,6 +256,60 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="nickname",
             data_schema=STEP_NICKNAME_SCHEMA,
+        )
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """Handle re-authentication when Pronote rejects credentials."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
+        """Ask for new credentials to keep the same entry and entities."""
+        entry = self._get_reauth_entry()
+        is_qr_code = entry.data["connection_type"] == "qrcode"
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            data = {**entry.data, **user_input}
+            try:
+                client = await self.hass.async_add_executor_job(
+                    (
+                        get_client_from_qr_code
+                        if is_qr_code
+                        else get_client_from_username_password
+                    ),
+                    data,
+                )
+                if client is None:
+                    raise InvalidAuth
+            except (InvalidAuth, *AUTH_ERRORS):
+                errors["base"] = "invalid_auth"
+            else:
+                if not is_qr_code:
+                    return self.async_update_reload_and_abort(
+                        entry, data_updates=user_input
+                    )
+                # never store the QR code, only the result
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={
+                        "qr_code_url": client.pronote_url,
+                        "qr_code_username": client.username,
+                        "qr_code_password": client.password,
+                        "qr_code_uuid": client.uuid,
+                        "uuid": client.uuid,
+                    },
+                )
+
+        schema = STEP_USER_DATA_SCHEMA_QR if is_qr_code else STEP_USER_DATA_SCHEMA_UP
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=self.add_suggested_values_to_schema(
+                schema, {k: v for k, v in entry.data.items() if k != "password"}
+            ),
+            errors=errors,
+            description_placeholders={"name": entry.title},
         )
 
     @staticmethod
