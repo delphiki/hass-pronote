@@ -357,6 +357,9 @@ class PronoteClassSensor(PronoteGenericSensor):
 class PronoteTimetableSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
 
+    # Recorder is limited to 16KB, period's lessons will exceed that
+    _unrecorded_attributes = frozenset({"lessons"})
+
     def __init__(
             self,
             coordinator: PronoteDataUpdateCoordinator,
