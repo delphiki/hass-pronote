@@ -182,7 +182,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if client is None:
                     raise InvalidAuth
-            except InvalidAuth:
+            except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             else:
                 self._user_inputs["qr_code_url"] = client.pronote_url
@@ -286,21 +286,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             else:
-                if not is_qr_code:
-                    return self.async_update_reload_and_abort(
-                        entry, data_updates=user_input
-                    )
-                # never store the QR code, only the result
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates={
+                updates = user_input
+                if is_qr_code:
+                    # don't keep the QR code, only the result
+                    updates = {
                         "qr_code_url": client.pronote_url,
                         "qr_code_username": client.username,
                         "qr_code_password": client.password,
                         "qr_code_uuid": client.uuid,
                         "uuid": client.uuid,
-                    },
+                    }
+                    # we keep the 2FA answers, so the next token login won't ask for it
+                    for key in ("account_pin", "device_name"):
+                        if user_input.get(key):
+                            updates[key] = user_input[key]
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, **updates}
                 )
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
 
         schema = STEP_USER_DATA_SCHEMA_QR if is_qr_code else STEP_USER_DATA_SCHEMA_UP
         return self.async_show_form(
