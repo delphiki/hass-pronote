@@ -2,7 +2,15 @@
 
 ## Installation
 
-### Using HACS
+### Using the Marketplace (Home Assistant 2026.11 and later)
+
+[![Open your Home Assistant instance and open a repository inside the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=delphiki&repository=hass-pronote&category=integration)
+
+OR
+
+Settings > Marketplace, and search for **Pronote**
+
+### Using HACS (before Home Assistant 2026.11)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=delphiki&repository=hass-pronote&category=integration)
 

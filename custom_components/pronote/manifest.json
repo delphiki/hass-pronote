@@ -1,6 +1,9 @@
 {
   "domain": "pronote",
   "name": "Pronote",
+  "categories": [
+    "productivity_information.calendars_todos"
+  ],
   "codeowners": [
     "@delphiki"
   ],
@@ -9,8 +12,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/delphiki/hass-pronote/issues",
   "requirements": [
-    "pronotepy==2.15.6",
-    "python-slugify==8.0.4"
+    "pronotepy==2.15.7"
   ],
   "version": "0.15.5"
 }
