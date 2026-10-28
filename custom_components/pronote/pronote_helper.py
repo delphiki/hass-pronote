@@ -35,6 +35,11 @@ import pronotepy
 from . import pronotepy_hotfix  # noqa: F401
 ### End Hotfix
 
+### ENT missing from pronotepy (enc_hauts_de_seine)
+### https://github.com/delphiki/hass-pronote/issues/193
+from . import pronote_ent  # noqa: F401
+### End Hotfix
+
 import json
 import logging
 import re
