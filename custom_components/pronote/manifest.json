@@ -1,6 +1,9 @@
 {
   "domain": "pronote",
   "name": "Pronote",
+  "categories": [
+    "productivity_information.calendars_todos"
+  ],
   "codeowners": [
     "@delphiki"
   ],
