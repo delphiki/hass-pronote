@@ -42,6 +42,23 @@ import re
 _LOGGER = logging.getLogger(__name__)
 
 
+def get_pronote_server_version(client) -> str:
+    """Return the PRONOTE version of the instance, e.g. "2026.2.5.7".
+
+    Read from the ``Server`` header of the last response received, which every
+    PRONOTE response carries. Unlike ``versionPN``, it is available even when
+    the login itself failed, which is when it is the most useful. Returns
+    "unknown" when the header is missing (a reverse proxy may strip it).
+    """
+    try:
+        server = client.communication.last_response.headers.get("Server", "")
+    except AttributeError:
+        return "unknown"
+
+    match = re.search(r"PRONOTE\s+([\d.]+)", server)
+    return match.group(1) if match else "unknown"
+
+
 def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None:
     _LOGGER.debug(f"Coordinator uses connection: {data['connection_type']}")
 
@@ -53,6 +70,8 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
     if client is None:
         _LOGGER.warning("Client creation failed")
         return None
+
+    _LOGGER.debug("Connected to PRONOTE %s", get_pronote_server_version(client))
 
     try:
         client.session_check()

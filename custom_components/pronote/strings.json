@@ -64,6 +64,7 @@
         }
       },
       "class": { "name": "Class" },
+      "pronote_version": { "name": "Pronote version" },
       "lessons_today": { "name": "Today's timetable" },
       "lessons_tomorrow": { "name": "Tomorrow's timetable" },
       "lessons_next_day": { "name": "Next day's timetable" },

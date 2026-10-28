@@ -40,6 +40,16 @@ _LOGGER = logging.getLogger(__name__)
 PATCHED_PRONOTEPY_VERSION = "2.15.7"
 
 
+def _server_version(client) -> str:
+    """PRONOTE version of the instance, for diagnostics.
+
+    Imported lazily because ``pronote_helper`` imports this module.
+    """
+    from .pronote_helper import get_pronote_server_version
+
+    return get_pronote_server_version(client)
+
+
 def _login(self) -> bool:
     """Logs in the user.
 
@@ -103,10 +113,11 @@ def _login(self) -> bool:
         # happens to succeed on the garbage bytes a migrated instance yields:
         # decrypting its challenge with the derived key is meaningless, so the
         # last byte is a valid padding length once in a while.
+        version = _server_version(self)
         if self.login_mode == "qr_code":
-            hint = "exception happened during login -> probably the qr code has expired (qr code is valid during 10 minutes)"
+            hint = f"exception happened during login on PRONOTE {version} -> probably the qr code has expired (qr code is valid during 10 minutes)"
         else:
-            hint = "exception happened during login -> probably bad username/password"
+            hint = f"exception happened during login on PRONOTE {version} -> probably bad username/password"
         if isinstance(ex, CryptoError):
             ex.args += (hint,)
             challenge_error = ex
@@ -116,7 +127,10 @@ def _login(self) -> bool:
         # the raw challenge to be re-encrypted as is. Try that before giving
         # up, and keep the error around so that it can still be raised (with
         # its helpful message) if the authentification below fails anyway.
-        log.debug("challenge decryption failed, falling back to the raw challenge")
+        log.debug(
+            "PRONOTE %s: challenge decryption failed, falling back to the raw challenge",
+            version,
+        )
         ch = e.aes_encrypt(challenge.encode()).hex()
 
     # send

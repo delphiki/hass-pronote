@@ -11,6 +11,7 @@
         }
       },
       "class": { "default": "mdi:account-school" },
+      "pronote_version": { "default": "mdi:information-outline" },
       "lessons_today": { "default": "mdi:timetable" },
       "lessons_tomorrow": { "default": "mdi:timetable" },
       "lessons_next_day": { "default": "mdi:timetable" },

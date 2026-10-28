@@ -1,5 +1,6 @@
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import slugify as ha_slugify
@@ -57,6 +58,7 @@ async def async_setup_entry(
 
     sensors = [
         PronoteClassSensor(coordinator),
+        PronoteVersionSensor(coordinator),
         PronoteTimetableSensor(
             coordinator, key="lessons_today", name="Today's timetable",
             translation_key="lessons_today",
@@ -352,6 +354,21 @@ class PronoteClassSensor(PronoteGenericSensor):
             "class_name": self.coordinator.data["child_info"].class_name,
             "establishment": self.coordinator.data["child_info"].establishment,
         }
+
+
+class PronoteVersionSensor(PronoteGenericSensor):
+    """Version of the Pronote instance of the establishment."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(
+            coordinator,
+            "pronote_version",
+            "Pronote version",
+            translation_key="pronote_version",
+        )
 
 
 class PronoteTimetableSensor(PronoteGenericSensor):

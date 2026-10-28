@@ -152,6 +152,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "active_periods": [],
             "next_alarm": None,
             "overall_average": None,
+            "pronote_version": None,
         }
 
         client = await self.hass.async_add_executor_job(get_pronote_client, config_data)
@@ -198,6 +199,16 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         self.data["child_info"] = child_info
         self.data["sensor_prefix"] = re.sub("[^A-Za-z]", "_", child_info.name.lower())
+
+        # PRONOTE version of the establishment instance, exposed as a
+        # diagnostic sensor. Read defensively: it is only there to help
+        # troubleshooting, it must never break a refresh.
+        self.data["pronote_version"] = (
+            client.func_options.get("dataSec", {})
+            .get("data", {})
+            .get("General", {})
+            .get("versionPN")
+        )
 
         # Lessons
         try:
