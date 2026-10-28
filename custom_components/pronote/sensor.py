@@ -628,6 +628,9 @@ class PronoteDelaysSensor(PronotePeriodRelatedSensor):
 class PronoteEvaluationsSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
+    # Recorder is limited to 16KB, evaluations and their acquisitions exceed that
+    _unrecorded_attributes = frozenset({"evaluations"})
+
     def __init__(
             self,
             coordinator: PronoteDataUpdateCoordinator,
