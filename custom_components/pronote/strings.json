@@ -28,6 +28,20 @@
         "data": {
           "child": "Child"
         }
+      },
+      "reauth_confirm": {
+        "title": "[%key:common::config_flow::title::reauth%]",
+        "description": "Pronote credentials for {name} are no longer valid. Enter new credentials, or a new QR code and its PIN.",
+        "data": {
+          "url": "[%key:common::config_flow::data::url%]",
+          "username": "[%key:common::config_flow::data::username%]",
+          "password": "[%key:common::config_flow::data::password%]",
+          "device_name": "[%key:common::config_flow::data::device_name%]",
+          "account_pin": "[%key:common::config_flow::data::account_pin%]",
+          "ent": "Ent",
+          "qr_code_json": "JSON version of QR",
+          "qr_code_pin": "Pin code"
+        }
       }
     },
     "error": {
@@ -36,7 +50,8 @@
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
     }
   },
   "options": {
@@ -64,6 +79,7 @@
         }
       },
       "class": { "name": "Class" },
+      "pronote_version": { "name": "Pronote version" },
       "lessons_today": { "name": "Today's timetable" },
       "lessons_tomorrow": { "name": "Tomorrow's timetable" },
       "lessons_next_day": { "name": "Next day's timetable" },

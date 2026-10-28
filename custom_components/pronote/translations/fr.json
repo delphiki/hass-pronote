@@ -1,7 +1,8 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Intégration déjà configurée"
+            "already_configured": "Intégration déjà configurée",
+            "reauth_successful": "Réauthentification réussie"
         },
         "error": {
             "cannot_connect": "Impossible de se connecter",
@@ -36,6 +37,20 @@
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
                 },
                 "description": "JSON du QR Code"
+            },
+            "reauth_confirm": {
+                "title": "Réauthentification",
+                "description": "Les identifiants Pronote de {name} ne sont plus valides. Saisissez de nouveaux identifiants, ou un nouveau QR code et son PIN.",
+                "data": {
+                    "url": "URL",
+                    "username": "Identifiant",
+                    "password": "Mot de passe",
+                    "ent": "ENT",
+                    "device_name": "Nom de l'appareil",
+                    "account_pin": "PIN du compte",
+                    "qr_code_json": "JSON du QR Code",
+                    "qr_code_pin": "PIN utilisé en créant le QR Code"
+                }
             }
         }
     },
@@ -64,6 +79,7 @@
                 }
             },
             "class": { "name": "Classe" },
+            "pronote_version": { "name": "Version de Pronote" },
             "lessons_today": { "name": "Emploi du temps du jour" },
             "lessons_tomorrow": { "name": "Emploi du temps de demain" },
             "lessons_next_day": { "name": "Emploi du temps du jour suivant" },
