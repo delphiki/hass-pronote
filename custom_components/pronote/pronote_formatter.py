@@ -237,6 +237,16 @@ def format_information_and_survey(information_and_survey) -> dict:
     }
 
 
+def format_discussion(discussion) -> dict:
+    return {
+        "subject": discussion.subject,
+        "creator": discussion.creator,
+        "unread": discussion.unread,
+        "closed": discussion.closed,
+        "labels": discussion.labels,
+    }
+
+
 def format_period(period, is_current_period: bool) -> dict:
     return {
         "id": slugify(period.name, separator="_"),
