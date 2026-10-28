@@ -1,7 +1,7 @@
 {
   "name": "Pronote for Home Assistant",
   "country": "FR",
-  "homeassistant": "2024.2.0",
+  "homeassistant": "2024.11.0",
   "content_in_root": false,
   "render_readme": true,
   "hide_default_branch": false,
