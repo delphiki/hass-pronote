@@ -1,18 +1,25 @@
-"""Temporary hotfix for pronotepy 2.15.6 login against migrated PRONOTE instances.
+"""Keeps PRONOTE instances that still use the login alea working.
 
 Since 2026-09-02, PRONOTE instances no longer use the "alea" in the login
 challenge: they expect the raw challenge string to be re-encrypted as is,
 instead of being decrypted, stripped of its alea, then re-encrypted.
-pronotepy 2.15.6 only implements the old behaviour and fails with
-``CryptoError: Decryption failed while trying to un pad``.
+
+pronotepy 2.15.7 handles the new behaviour, but only that one: it dropped the
+old code path entirely, so instances that have not been migrated yet stop
+working. This module replaces ``ClientBase._login`` with the 2.15.7
+implementation supporting both: the old path is tried first, and the raw
+challenge is used when it fails.
+
+Keeping that order matters. Deciding between the two schemes is done locally,
+before anything is sent, so a single Authentification request is issued either
+way and PRONOTE never records a failed login attempt.
 
 See https://github.com/bain3/pronotepy/issues/346 and
 https://github.com/delphiki/hass-pronote/issues/172.
 
-This module replaces ``ClientBase._login`` with the upstream 2.15.6
-implementation plus a fallback on the raw challenge, so that both migrated and
-non migrated instances keep working. It must be dropped as soon as the fix is
-released upstream, hence the version guard at the bottom of this file.
+The version guard at the bottom of this file disables the patch as soon as
+pronotepy moves on, so this module has to be reviewed on every bump. It can be
+dropped once no establishment is left on the old challenge scheme.
 """
 
 import json
@@ -30,7 +37,17 @@ from pronotepy.pronoteAPI import _Encryption, _enleverAlea, _prepare_onglets, lo
 _LOGGER = logging.getLogger(__name__)
 
 # pronotepy version this patched _login has been copied from.
-PATCHED_PRONOTEPY_VERSION = "2.15.6"
+PATCHED_PRONOTEPY_VERSION = "2.15.7"
+
+
+def _server_version(client) -> str:
+    """PRONOTE version of the instance, for diagnostics.
+
+    Imported lazily because ``pronote_helper`` imports this module.
+    """
+    from .pronote_helper import get_pronote_server_version
+
+    return get_pronote_server_version(client)
 
 
 def _login(self) -> bool:
@@ -96,10 +113,11 @@ def _login(self) -> bool:
         # happens to succeed on the garbage bytes a migrated instance yields:
         # decrypting its challenge with the derived key is meaningless, so the
         # last byte is a valid padding length once in a while.
+        version = _server_version(self)
         if self.login_mode == "qr_code":
-            hint = "exception happened during login -> probably the qr code has expired (qr code is valid during 10 minutes)"
+            hint = f"exception happened during login on PRONOTE {version} -> probably the qr code has expired (qr code is valid during 10 minutes)"
         else:
-            hint = "exception happened during login -> probably bad username/password"
+            hint = f"exception happened during login on PRONOTE {version} -> probably bad username/password"
         if isinstance(ex, CryptoError):
             ex.args += (hint,)
             challenge_error = ex
@@ -109,7 +127,10 @@ def _login(self) -> bool:
         # the raw challenge to be re-encrypted as is. Try that before giving
         # up, and keep the error around so that it can still be raised (with
         # its helpful message) if the authentification below fails anyway.
-        log.debug("challenge decryption failed, falling back to the raw challenge")
+        log.debug(
+            "PRONOTE %s: challenge decryption failed, falling back to the raw challenge",
+            version,
+        )
         ch = e.aes_encrypt(challenge.encode()).hex()
 
     # send
@@ -173,13 +194,46 @@ def _login(self) -> bool:
         return False
 
 
+def _information_fetch_content(self) -> None:
+    """Upstream 2.15.6 implementation, with the user's genre instead of a hardcoded 4.
+
+    On parent accounts (genre 5), PRONOTE rejects the request with
+    "La page a expiré !" and pronotepy calls refresh(), a full re-login.
+    """
+    if self._raw_content is not None:
+        return
+
+    genre = self._client.info.raw_resource.get("G", 4)
+    resp = self._client.post(
+        "PageActualites",
+        8,
+        {
+            "actualite": {
+                "N": self.id,
+                "genrePublic": genre,
+                "public": {
+                    "N": self._client.info.id,
+                    "G": genre,
+                },
+            },
+            "genreRequeteActualite": 1,
+            "modeAffActu": 0,
+        },
+    )
+
+    self._raw_content = resp["dataSec"]["data"]["detailsActualite"][
+        "listeQuestions"
+    ]["V"]
+
+
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
-    _LOGGER.debug("pronotepy login hotfix applied")
+    dataClasses.Information._fetch_content = _information_fetch_content
+    _LOGGER.debug("pronotepy hotfixes applied")
 else:
     _LOGGER.warning(
         "pronotepy login hotfix not applied: expected version %s, got %s. "
-        "It can most likely be removed.",
+        "It needs to be reviewed against the new version, or removed.",
         PATCHED_PRONOTEPY_VERSION,
         pronotepy.__version__,
     )
