@@ -202,8 +202,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             except Exception as ex:
                 _LOGGER.warning("Error saving pronote credentials: %s", ex)
             try:
-                if hasattr(client, 'session') and client.session is not None:
-                    await self.hass.async_add_executor_job(client.session.close)
+                await self.hass.async_add_executor_job(client.communication.session.close)
             except Exception:
                 pass
             # Clear the class-level set that accumulates every Period ever created
