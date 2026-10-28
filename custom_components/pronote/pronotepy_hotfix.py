@@ -17,6 +17,12 @@ way and PRONOTE never records a failed login attempt.
 See https://github.com/bain3/pronotepy/issues/346 and
 https://github.com/delphiki/hass-pronote/issues/172.
 
+This module also replaces ``ParentClient.post``, which lacks the refresh recursion
+guard of ``ClientBase.post``.
+Without it, a fail login on a parent account made it refresh in a loop and Pronote
+BAN the IP.
+See https://github.com/delphiki/hass-pronote/issues/198.
+
 The version guard at the bottom of this file disables the patch as soon as
 pronotepy moves on, so this module has to be reviewed on every bump. It can be
 dropped once no establishment is left on the old challenge scheme.
@@ -30,13 +36,13 @@ from Crypto.Hash import SHA256
 
 import pronotepy
 from pronotepy import dataClasses
-from pronotepy.clients import ClientBase
-from pronotepy.exceptions import CryptoError, PronoteAPIError
+from pronotepy.clients import ClientBase, ParentClient
+from pronotepy.exceptions import CryptoError, ExpiredObject, PronoteAPIError
 from pronotepy.pronoteAPI import _Encryption, _enleverAlea, _prepare_onglets, log
 
 _LOGGER = logging.getLogger(__name__)
 
-# pronotepy version this patched _login has been copied from.
+# pronotepy version this patched _login and post have been copied from.
 PATCHED_PRONOTEPY_VERSION = "2.15.7"
 
 
@@ -194,6 +200,45 @@ def _login(self) -> bool:
         return False
 
 
+def _parent_post(
+    self,
+    function_name: str,
+    onglet: Optional[int] = None,
+    data: Optional[dict] = None,
+) -> dict:
+    """Upstream ParentClient.post with the refresh recursion guard of ClientBase."""
+    post_data = {}
+    if onglet:
+        post_data["Signature"] = {
+            "onglet": onglet,
+            "membre": {"N": self._selected_child.id, "G": 4},
+        }
+
+    if data:
+        post_data["data"] = data
+
+    try:
+        return self.communication.post(function_name, post_data)
+    except PronoteAPIError as e:
+        if isinstance(e, ExpiredObject):
+            raise e
+
+        log.info(
+            f"Have you tried turning it off and on again? ERROR: {e.pronote_error_code} | {e.pronote_error_msg}"
+        )
+
+        # prevent refresh recursion
+        if self._refreshing:
+            raise e
+        self._refreshing = True
+        try:
+            self.refresh()
+        finally:
+            self._refreshing = False
+
+        return self.communication.post(function_name, post_data)
+
+
 def _information_fetch_content(self) -> None:
     """Upstream 2.15.6 implementation, with the user's genre instead of a hardcoded 4.
 
@@ -229,10 +274,11 @@ def _information_fetch_content(self) -> None:
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
     dataClasses.Information._fetch_content = _information_fetch_content
+    ParentClient.post = _parent_post
     _LOGGER.debug("pronotepy hotfixes applied")
 else:
     _LOGGER.warning(
-        "pronotepy login hotfix not applied: expected version %s, got %s. "
+        "pronotepy hotfixes not applied: expected version %s, got %s. "
         "It needs to be reviewed against the new version, or removed.",
         PATCHED_PRONOTEPY_VERSION,
         pronotepy.__version__,
