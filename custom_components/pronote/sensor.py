@@ -498,9 +498,9 @@ class PronoteGradesSensor(PronotePeriodRelatedSensor):
         index_note = 0
         if self.coordinator.data[self._key] is not None:
             for grade in self.coordinator.data[self._key]:
-                index_note += 1
                 if index_note == GRADES_TO_DISPLAY:
                     break
+                index_note += 1
                 grades.append(format_grade(grade))
 
         attributes["grades"] = grades
@@ -628,6 +628,9 @@ class PronoteDelaysSensor(PronotePeriodRelatedSensor):
 class PronoteEvaluationsSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
+    # Recorder is limited to 16KB, evaluations and their acquisitions exceed that
+    _unrecorded_attributes = frozenset({"evaluations"})
+
     def __init__(
             self,
             coordinator: PronoteDataUpdateCoordinator,
@@ -657,9 +660,9 @@ class PronoteEvaluationsSensor(PronotePeriodRelatedSensor):
         index_note = 0
         if self.coordinator.data[self._key] is not None:
             for evaluation in self.coordinator.data[self._key]:
-                index_note += 1
                 if index_note == EVALUATIONS_TO_DISPLAY:
                     break
+                index_note += 1
                 evaluations.append(format_evaluation(evaluation))
 
         attributes["evaluations"] = evaluations
