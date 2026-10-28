@@ -18,7 +18,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    TimestampDataUpdateCoordinator,
+    UpdateFailed,
+)
 
 
 from .const import (
@@ -199,8 +202,9 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 f"Pronote authentication failed: {err}"
             ) from err
         if client is None:
-            _LOGGER.error("Unable to init pronote client")
-            return None
+            # Keep the last data for compare_data on the next update
+            self.data = previous_data
+            raise UpdateFailed("Unable to init pronote client")
 
         try:
             return await self._fetch_data(client, today, previous_data)
