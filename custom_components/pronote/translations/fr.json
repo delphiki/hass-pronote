@@ -64,6 +64,7 @@
                 }
             },
             "class": { "name": "Classe" },
+            "pronote_version": { "name": "Version de Pronote" },
             "lessons_today": { "name": "Emploi du temps du jour" },
             "lessons_tomorrow": { "name": "Emploi du temps de demain" },
             "lessons_next_day": { "name": "Emploi du temps du jour suivant" },
