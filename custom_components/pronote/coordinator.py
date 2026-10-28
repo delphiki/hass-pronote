@@ -17,6 +17,7 @@ from slugify import slugify
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
 
@@ -188,7 +189,15 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "pronote_version": None,
         }
 
-        client = await self.hass.async_add_executor_job(get_pronote_client, config_data)
+        try:
+            client = await self.hass.async_add_executor_job(
+                get_pronote_client, config_data
+            )
+        except AUTH_ERRORS as err:
+            # Stop polling and ask the user for new auth
+            raise ConfigEntryAuthFailed(
+                f"Pronote authentication failed: {err}"
+            ) from err
         if client is None:
             _LOGGER.error("Unable to init pronote client")
             return None
