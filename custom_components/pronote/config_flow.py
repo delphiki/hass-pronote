@@ -13,7 +13,7 @@ import voluptuous as vol
 from datetime import time
 
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.components.file_upload import process_uploaded_file
@@ -82,14 +82,24 @@ STEP_USER_CONNECTION_TYPE = vol.Schema(
     }
 )
 
+# Only needed when the school uses double authentication
+DOUBLE_AUTH_SECTION = section(
+    vol.Schema(
+        {
+            vol.Optional("device_name"): str,
+            vol.Optional("account_pin"): str,
+        }
+    ),
+    {"collapsed": True},
+)
+
 STEP_USER_DATA_SCHEMA_UP = vol.Schema(
     {
         vol.Required("url"): str,
         vol.Required("username"): str,
         vol.Required("password"): str,
         vol.Optional("ent"): vol.In(get_ent_list()),
-        vol.Optional("device_name"): str,
-        vol.Optional("account_pin"): str,
+        vol.Optional("double_auth"): DOUBLE_AUTH_SECTION,
     }
 )
 
@@ -100,8 +110,7 @@ STEP_USER_DATA_SCHEMA_QR = vol.Schema(
             FileSelectorConfig(accept="image/*")
         ),
         vol.Required("qr_code_pin"): str,
-        vol.Optional("device_name"): str,
-        vol.Optional("account_pin"): str,
+        vol.Optional("double_auth"): DOUBLE_AUTH_SECTION,
     }
 )
 
@@ -145,6 +154,11 @@ async def async_get_qr_code_json(hass: HomeAssistant, user_input: dict) -> None:
         raise InvalidQRCode
 
 
+def flatten_double_auth(user_input: dict) -> None:
+    """Move device_name and account_pin out of their form section."""
+    user_input.update(user_input.pop("double_auth", None) or {})
+
+
 @config_entries.HANDLERS.register(DOMAIN)
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Pronote."""
@@ -180,6 +194,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.info("async_step_up: Connecting via user/password")
         errors: dict[str, str] = {}
         if user_input is not None:
+            flatten_double_auth(user_input)
             try:
                 _LOGGER.debug("User Input: %s", user_input)
                 user_input["account_type"] = self._user_inputs["account_type"]
@@ -216,6 +231,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.info("async_step_up: Connecting via qrcode")
         errors: dict[str, str] = {}
         if user_input is not None:
+            flatten_double_auth(user_input)
             try:
                 _LOGGER.debug("User Input: %s", self._user_inputs)
                 user_input["account_type"] = self._user_inputs["account_type"]
@@ -319,6 +335,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            flatten_double_auth(user_input)
             try:
                 if is_qr_code:
                     await async_get_qr_code_json(self.hass, user_input)
@@ -362,7 +379,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=self.add_suggested_values_to_schema(
-                schema, {k: v for k, v in entry.data.items() if k != "password"}
+                schema,
+                {
+                    **{k: v for k, v in entry.data.items() if k != "password"},
+                    "double_auth": {
+                        k: entry.data[k]
+                        for k in ("device_name", "account_pin")
+                        if entry.data.get(k)
+                    },
+                },
             ),
             errors=errors,
             description_placeholders={"name": entry.title},
