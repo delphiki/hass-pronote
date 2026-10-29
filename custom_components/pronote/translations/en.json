@@ -95,6 +95,20 @@
             }
         }
     },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "username_password": "Username and password",
+                "qrcode": "QR code"
+            }
+        },
+        "account_type": {
+            "options": {
+                "eleve": "Student",
+                "parent": "Parent"
+            }
+        }
+    },
     "options": {
         "step": {
             "init": {

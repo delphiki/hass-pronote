@@ -17,7 +17,12 @@ from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.components.file_upload import process_uploaded_file
-from homeassistant.helpers.selector import FileSelector, FileSelectorConfig
+from homeassistant.helpers.selector import (
+    FileSelector,
+    FileSelectorConfig,
+    SelectSelector,
+    SelectSelectorConfig,
+)
 
 ### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -75,10 +80,18 @@ def get_ent_list() -> dict[str]:
 
 STEP_USER_CONNECTION_TYPE = vol.Schema(
     {
-        vol.Required("connection_type"): vol.In(
-            {"username_password": "Username and password", "qrcode": "QRCode"}
+        vol.Required("connection_type"): SelectSelector(
+            SelectSelectorConfig(
+                options=["username_password", "qrcode"],
+                translation_key="connection_type",
+            )
         ),
-        vol.Required("account_type"): vol.In({"eleve": "Student", "parent": "Parent"}),
+        vol.Required("account_type"): SelectSelector(
+            SelectSelectorConfig(
+                options=["eleve", "parent"],
+                translation_key="account_type",
+            )
+        ),
     }
 )
 

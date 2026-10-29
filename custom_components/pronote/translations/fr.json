@@ -18,12 +18,12 @@
             },
             "user": {
                 "data": {
-                    "connection_type": "Type de connection"
+                    "account_type": "Type de compte",
+                    "connection_type": "Type de connexion"
                 }
             },
             "username_password_login": {
                 "data": {
-                    "account_type": "Type de compte",
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
@@ -92,6 +92,20 @@
                         }
                     }
                 }
+            }
+        }
+    },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "username_password": "Identifiant et mot de passe",
+                "qrcode": "QR code"
+            }
+        },
+        "account_type": {
+            "options": {
+                "eleve": "Élève",
+                "parent": "Parent"
             }
         }
     },
