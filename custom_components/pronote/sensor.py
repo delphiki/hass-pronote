@@ -431,9 +431,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in lessons:
-                index = lessons.index(lesson)
-                if not (
+            for index, lesson in enumerate(lessons):
+                if index == 0 or not (
                         lesson.start == lessons[index - 1].start and lesson.canceled is True
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
