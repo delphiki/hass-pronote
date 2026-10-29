@@ -133,12 +133,18 @@ def get_overall_average(period):
     if period is None:
         return None
     try:
-        return period.overall_average
+        overall_average = period.overall_average
     except Exception as ex:
         _LOGGER.info(
             "Error getting overall average from period (%s): %s", period.name, ex
         )
         return None
+    # Pronote gives "17,87", and "-1" when there is no average
+    try:
+        overall_average = float(overall_average.replace(",", "."))
+    except (AttributeError, ValueError):
+        return None
+    return None if overall_average == -1 else overall_average
 
 
 class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):

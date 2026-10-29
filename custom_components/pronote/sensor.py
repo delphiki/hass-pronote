@@ -6,6 +6,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import slugify as ha_slugify
 from homeassistant.components.sensor import (
     SensorDeviceClass,
+    SensorStateClass,
     SensorEntity,
 )
 
@@ -323,6 +324,8 @@ class PronotePeriodRelatedSensor(PronoteGenericSensor):
             translation_placeholders=translation_placeholders,
         )
         self._period_key = period_key
+        if key.startswith("overall_average"):
+            self._attr_state_class = SensorStateClass.MEASUREMENT
         # Current period sensors (no period suffix) follow the period changes
         self._follows_current_period = not key.endswith(f"_{period_key}")
 
