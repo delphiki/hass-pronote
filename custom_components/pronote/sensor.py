@@ -418,12 +418,15 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             "lessons_tomorrow",
             "lessons_next_day",
         ]
-        lunch_break_time = datetime.strptime(
-            self.coordinator.config_entry.options.get(
-                "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
-            ),
-            "%H:%M",
-        ).time()
+        try:
+            lunch_break_time = datetime.strptime(
+                self.coordinator.config_entry.options.get(
+                    "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                ),
+                "%H:%M",
+            ).time()
+        except ValueError:
+            lunch_break_time = datetime.strptime(DEFAULT_LUNCH_BREAK_TIME, "%H:%M").time()
 
         if lessons is not None:
             self._start_at = None
