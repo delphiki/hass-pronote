@@ -819,7 +819,11 @@ class PronoteCurrentPeriodSensor(PronoteGenericSensor):
             "Current period",
             translation_key="current_period",
         )
-        self._state = self.coordinator.data["current_period"].name
+
+    @property
+    def native_value(self):
+        period = self.coordinator.data["current_period"]
+        return period.name if period is not None else "unavailable"
 
     @property
     def extra_state_attributes(self):
