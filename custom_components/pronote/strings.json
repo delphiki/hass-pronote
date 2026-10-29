@@ -20,9 +20,10 @@
       "qr_code_login": {
         "data": {
           "qr_code_json": "JSON version of QR",
+          "qr_code_image": "Picture of the QR code",
           "qr_code_pin": "Pin code"
         },
-        "description": "JSON of QR Code"
+        "description": "Paste the QR code JSON, or send a picture of it"
       },
       "parent": {
         "data": {
@@ -40,6 +41,7 @@
           "account_pin": "[%key:common::config_flow::data::account_pin%]",
           "ent": "Ent",
           "qr_code_json": "JSON version of QR",
+          "qr_code_image": "Picture of the QR code",
           "qr_code_pin": "Pin code"
         }
       }
@@ -47,6 +49,7 @@
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "invalid_qr_code": "No Pronote QR code found, paste the JSON or send a clear picture of the QR code",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

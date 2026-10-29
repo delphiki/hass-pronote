@@ -8,6 +8,9 @@
     "@delphiki"
   ],
   "config_flow": true,
+  "dependencies": [
+    "file_upload"
+  ],
   "documentation": "https://github.com/delphiki/hass-pronote",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/delphiki/hass-pronote/issues",

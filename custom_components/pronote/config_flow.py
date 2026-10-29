@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -14,7 +15,9 @@ from datetime import time
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.file_upload import process_uploaded_file
+from homeassistant.helpers.selector import FileSelector, FileSelectorConfig
 
 ### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -92,12 +95,54 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
 
 STEP_USER_DATA_SCHEMA_QR = vol.Schema(
     {
-        vol.Required("qr_code_json"): str,
+        vol.Optional("qr_code_json"): str,
+        vol.Optional("qr_code_image"): FileSelector(
+            FileSelectorConfig(accept="image/*")
+        ),
         vol.Required("qr_code_pin"): str,
         vol.Optional("device_name"): str,
         vol.Optional("account_pin"): str,
     }
 )
+
+
+def decode_qr_code_image(hass: HomeAssistant, file_id: str) -> str:
+    """Read the Pronote QR code JSON from an uploaded picture."""
+    try:
+        from PIL import Image
+        from pyzbar.pyzbar import decode
+    except (ImportError, OSError) as ex:
+        # pyzbar needs the zbar system library
+        _LOGGER.warning("Can't read the QR code picture: %s", ex)
+        raise InvalidQRCode from ex
+
+    try:
+        with process_uploaded_file(hass, file_id) as file_path:
+            with Image.open(file_path) as image:
+                codes = decode(image)
+    except (OSError, ValueError) as ex:
+        _LOGGER.info("Can't read the QR code picture: %s", ex)
+        raise InvalidQRCode from ex
+
+    for code in codes:
+        try:
+            qr_code = json.loads(code.data)
+        except ValueError:
+            continue
+        if isinstance(qr_code, dict) and "jeton" in qr_code:
+            return code.data.decode()
+    raise InvalidQRCode
+
+
+async def async_get_qr_code_json(hass: HomeAssistant, user_input: dict) -> None:
+    """Put the QR code JSON in user_input, from the picture if there is no JSON."""
+    file_id = user_input.pop("qr_code_image", None)
+    if file_id and not user_input.get("qr_code_json"):
+        user_input["qr_code_json"] = await hass.async_add_executor_job(
+            decode_qr_code_image, hass, file_id
+        )
+    if not user_input.get("qr_code_json"):
+        raise InvalidQRCode
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -175,6 +220,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("User Input: %s", self._user_inputs)
                 user_input["account_type"] = self._user_inputs["account_type"]
                 user_input["qr_code_uuid"] = str(uuid.uuid4())
+                await async_get_qr_code_json(self.hass, user_input)
 
                 client = await self.hass.async_add_executor_job(
                     get_client_from_qr_code, user_input
@@ -182,6 +228,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if client is None:
                     raise InvalidAuth
+            except InvalidQRCode:
+                errors["base"] = "invalid_qr_code"
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             else:
@@ -271,8 +319,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            data = {**entry.data, **user_input}
             try:
+                if is_qr_code:
+                    await async_get_qr_code_json(self.hass, user_input)
+                data = {**entry.data, **user_input}
                 client = await self.hass.async_add_executor_job(
                     (
                         get_client_from_qr_code
@@ -283,6 +333,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 if client is None:
                     raise InvalidAuth
+            except InvalidQRCode:
+                errors["base"] = "invalid_qr_code"
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             else:
@@ -331,6 +383,10 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+
+class InvalidQRCode(HomeAssistantError):
+    """Error to indicate no Pronote QR code was found."""
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):

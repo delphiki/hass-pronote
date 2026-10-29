@@ -7,6 +7,7 @@
         "error": {
             "cannot_connect": "Failed to connect",
             "invalid_auth": "Invalid authentication",
+            "invalid_qr_code": "No Pronote QR code found, paste the JSON or send a clear picture of the QR code",
             "unknown": "Unexpected error"
         },
         "step": {
@@ -18,9 +19,10 @@
             "qr_code_login": {
                 "data": {
                     "qr_code_json": "JSON version of QR",
+                    "qr_code_image": "Picture of the QR code",
                     "qr_code_pin": "Pin code"
                 },
-                "description": "JSON of QR Code"
+                "description": "Paste the QR code JSON, or send a picture of it"
             },
             "reauth_confirm": {
                 "title": "Re-authenticate",
@@ -33,6 +35,7 @@
                     "device_name": "Device name",
                     "account_pin": "Account PIN",
                     "qr_code_json": "JSON version of QR",
+                    "qr_code_image": "Picture of the QR code",
                     "qr_code_pin": "Pin code"
                 }
             },
