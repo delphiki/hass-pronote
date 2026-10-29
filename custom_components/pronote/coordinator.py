@@ -459,6 +459,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data["punishments"] = await self.hass.async_add_executor_job(
             get_punishments, current_period
         )
+        self.compare_data(
+            previous_data,
+            "punishments",
+            ["date", "nature", "giver", "circumstances"],
+            "new_punishment",
+            format_punishment,
+        )
 
         # iCal
         try:
@@ -559,6 +566,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[
                         f"punishments_{period_key}"
                     ] = await self.hass.async_add_executor_job(get_punishments, period)
+                    self.compare_data(
+                        previous_data,
+                        f"punishments_{period_key}",
+                        ["date", "nature", "giver", "circumstances"],
+                        "new_punishment",
+                        format_punishment,
+                    )
                     self.data[
                         f"overall_average_{period_key}"
                     ] = await self.hass.async_add_executor_job(
