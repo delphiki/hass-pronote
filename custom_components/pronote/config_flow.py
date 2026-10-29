@@ -266,6 +266,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._user_inputs["qr_code_username"] = client.username
                 self._user_inputs["qr_code_password"] = client.password
                 self._user_inputs["qr_code_uuid"] = client.uuid
+                self._user_inputs["client_identifier"] = client.client_identifier
+                for key in ("account_pin", "device_name"):
+                    if user_input.get(key):
+                        self._user_inputs[key] = user_input[key]
 
                 self.pronote_client = client
 
@@ -377,6 +381,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "qr_code_password": client.password,
                         "qr_code_uuid": client.uuid,
                         "uuid": client.uuid,
+                        "client_identifier": client.client_identifier,
                     }
                     # we keep the 2FA answers, so the next token login won't ask for it
                     for key in ("account_pin", "device_name"):
