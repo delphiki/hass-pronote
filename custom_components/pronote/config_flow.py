@@ -15,6 +15,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
+from homeassistant.helpers.redact import async_redact_data
 
 ### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -58,6 +59,16 @@ from .const import (
 
 
 _LOGGER = logging.getLogger(__name__)
+
+# Not written to the logs
+TO_REDACT = {
+    "password",
+    "account_pin",
+    "qr_code_json",
+    "qr_code_pin",
+    "qr_code_password",
+    "qr_code_uuid",
+}
 
 
 def get_ent_list() -> dict[str]:
@@ -136,7 +147,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("User Input: %s", user_input)
+                _LOGGER.debug(
+                    "User Input: %s", async_redact_data(user_input, TO_REDACT)
+                )
                 user_input["account_type"] = self._user_inputs["account_type"]
                 self._user_inputs.update(user_input)
                 client = await self.hass.async_add_executor_job(
@@ -153,7 +166,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.pronote_client = client
 
                 if user_input["account_type"] == "parent":
-                    _LOGGER.debug("_User Inputs UP Parent: %s", self._user_inputs)
+                    _LOGGER.debug(
+                        "_User Inputs UP Parent: %s",
+                        async_redact_data(self._user_inputs, TO_REDACT),
+                    )
                     return await self.async_step_parent()
 
                 return await self.async_step_nickname()
@@ -172,7 +188,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("User Input: %s", self._user_inputs)
+                _LOGGER.debug(
+                    "User Input: %s", async_redact_data(self._user_inputs, TO_REDACT)
+                )
                 user_input["account_type"] = self._user_inputs["account_type"]
                 user_input["qr_code_uuid"] = str(uuid.uuid4())
 
@@ -223,7 +241,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._user_inputs["child"] = user_input["child"]
-        _LOGGER.debug("Parent Input UP: %s", self._user_inputs)
+        _LOGGER.debug(
+            "Parent Input UP: %s", async_redact_data(self._user_inputs, TO_REDACT)
+        )
         return await self.async_step_nickname()
 
     async def async_step_nickname(self, user_input: dict | None = None) -> FlowResult:
