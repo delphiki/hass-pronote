@@ -31,7 +31,9 @@ async def async_setup_entry(
 
 
 @callback
-def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
+def async_get_calendar_event_from_lessons(
+    lesson, timezone, uid_prefix
+) -> CalendarEvent:
     """Get a HASS CalendarEvent from a Pronote Lesson."""
     tz = ZoneInfo(timezone)
 
@@ -45,6 +47,8 @@ def async_get_calendar_event_from_lessons(lesson, timezone) -> CalendarEvent:
         location=f"Salle {lesson.classroom}",
         start=lesson.start.replace(tzinfo=tz),
         end=lesson.end.replace(tzinfo=tz),
+        # lesson.id changes at each login, start + num is stable
+        uid=f"{uid_prefix}-{lesson.start:%Y%m%dT%H%M}-{lesson.num}",
     )
 
 
@@ -96,7 +100,7 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
             self._event = None
         else:
             self._event = async_get_calendar_event_from_lessons(
-                current_event, self.hass.config.time_zone
+                current_event, self.hass.config.time_zone, self.unique_id
             )
 
         super()._handle_coordinator_update()
@@ -109,7 +113,9 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
         return [
-            async_get_calendar_event_from_lessons(event, hass.config.time_zone)
+            async_get_calendar_event_from_lessons(
+                event, hass.config.time_zone, self.unique_id
+            )
             for event in filter(
                 lambda lesson: lesson.canceled == False,
                 self.coordinator.data["lessons_period"],
