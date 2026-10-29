@@ -208,6 +208,9 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         try:
             return await self._fetch_data(client, today, previous_data)
+        except Exception:
+            self.data = previous_data
+            raise
         finally:
             # A refresh() during the update rotates the token again
             try:
