@@ -43,9 +43,9 @@ def get_current_period(client):
         return client.current_period
     except Exception as ex:
         _LOGGER.info("Error getting current period from pronote: %s", ex)
-    now = datetime.now()
+    today = date.today()
     try:
-        periods = [p for p in client.periods if p.start <= now <= p.end]
+        periods = [p for p in client.periods if p.start.date() <= today <= p.end.date()]
     except Exception as ex:
         _LOGGER.info("Error getting periods from pronote: %s", ex)
         return None
