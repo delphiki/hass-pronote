@@ -48,6 +48,10 @@ _LOGGER = logging.getLogger(__name__)
 AUTH_ERRORS = (pronotepy.exceptions.CryptoError, pronotepy.exceptions.MFAError)
 
 
+def is_ip_suspended(err) -> bool:
+    return isinstance(err, pronotepy.exceptions.PronoteAPIError) and "IP address is suspended" in str(err)
+
+
 def get_pronote_server_version(client) -> str:
     """Return the PRONOTE version of the instance, e.g. "2026.2.5.7".
 
@@ -123,6 +127,8 @@ def get_client_from_username_password(
     except AUTH_ERRORS:
         raise
     except Exception as err:
+        if is_ip_suspended(err):
+            raise
         _LOGGER.critical(err)
         return None
 

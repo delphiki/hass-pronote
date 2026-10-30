@@ -222,6 +222,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not is_ip_suspended(err):
+                    raise
+                errors["base"] = "ip_suspended"
             else:
                 self.pronote_client = client
 
@@ -261,6 +265,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_qr_code"
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not is_ip_suspended(err):
+                    raise
+                errors["base"] = "ip_suspended"
             else:
                 self._user_inputs["qr_code_url"] = client.pronote_url
                 self._user_inputs["qr_code_username"] = client.username
@@ -371,6 +379,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_qr_code"
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not is_ip_suspended(err):
+                    raise
+                errors["base"] = "ip_suspended"
             else:
                 updates = user_input
                 if is_qr_code:

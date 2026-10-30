@@ -201,6 +201,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             raise ConfigEntryAuthFailed(
                 f"Pronote authentication failed: {err}"
             ) from err
+        except pronotepy.exceptions.PronoteAPIError as err:
+            if not is_ip_suspended(err):
+                raise
+            client = None
         if client is None:
             # Keep the last data for compare_data on the next update
             self.data = previous_data
