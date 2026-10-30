@@ -202,7 +202,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 f"Pronote authentication failed: {err}"
             ) from err
         except pronotepy.exceptions.PronoteAPIError as err:
-            if not (is_ip_suspended(err) or is_account_locked(err)):
+            if not pronote_error(err):
                 raise
             client = None
         if client is None:

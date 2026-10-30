@@ -5,11 +5,19 @@
             "reauth_successful": "Re-authentication was successful"
         },
         "error": {
+            "access_denied": "Pronote refused the access, all user sessions may be busy: try again later",
             "account_locked": "Too many authentication errors, Pronote locks this account for a while: try again in 15 minutes",
             "cannot_connect": "Failed to connect",
             "invalid_auth": "Invalid authentication",
             "invalid_qr_code": "No Pronote QR code found, paste the JSON or send a clear picture of the QR code",
+            "ip_blocked": "Pronote temporarily blocked this IP address after too many attempts: try again in a few hours",
             "ip_suspended": "Pronote returned an unexpected page: the IP may be blocked after too many attempts (try again in a few hours), or the ENT login changed",
+            "maintenance": "Pronote is under maintenance (work in progress on the database): try again later",
+            "pronote_error": "Pronote returned a technical error: try again later",
+            "proxy_refused": "Pronote refuses connections from a public proxy, turn off the VPN or proxy",
+            "session_expired": "The Pronote session expired: try again",
+            "site_unavailable": "The Pronote site is currently unavailable: try again later",
+            "space_not_published": "This Pronote space is not enabled by the school, check the account type",
             "unknown": "Unexpected error"
         },
         "step": {
