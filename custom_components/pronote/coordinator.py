@@ -43,9 +43,9 @@ def get_current_period(client):
         return client.current_period
     except Exception as ex:
         _LOGGER.info("Error getting current period from pronote: %s", ex)
-    now = datetime.now()
+    today = date.today()
     try:
-        periods = [p for p in client.periods if p.start <= now <= p.end]
+        periods = [p for p in client.periods if p.start.date() <= today <= p.end.date()]
     except Exception as ex:
         _LOGGER.info("Error getting periods from pronote: %s", ex)
         return None
@@ -208,6 +208,9 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         try:
             return await self._fetch_data(client, today, previous_data)
+        except Exception:
+            self.data = previous_data
+            raise
         finally:
             # A refresh() during the update rotates the token again
             try:

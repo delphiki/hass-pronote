@@ -90,7 +90,7 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
 def get_client_from_username_password(
     data,
 ) -> pronotepy.Client | pronotepy.ParentClient | None:
-    url = data["url"]
+    url = data["url"].split("?", 1)[0]
     url = re.sub(r"/[^/]+\.html$", "/", url)
     if not url.endswith("/"):
         url += "/"
