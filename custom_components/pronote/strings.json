@@ -88,7 +88,7 @@
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "invalid_qr_code": "No Pronote QR code found, paste the JSON or send a clear picture of the QR code",
-      "ip_suspended": "Pronote blocked the Home Assistant IP address after too many attempts, try again in a few hours",
+      "ip_suspended": "Pronote returned an unexpected page: the IP may be blocked after too many attempts (try again in a few hours), or the ENT login changed",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

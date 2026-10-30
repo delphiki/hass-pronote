@@ -8,7 +8,7 @@
             "cannot_connect": "Impossible de se connecter",
             "invalid_auth": "Erreur d'authentification",
             "invalid_qr_code": "Aucun QR code Pronote trouvé, collez le JSON ou envoyez une photo nette du QR code",
-            "ip_suspended": "Pronote a bloqué l'adresse IP de Home Assistant après trop d'essais, réessayez dans quelques heures",
+            "ip_suspended": "Pronote a renvoyé une page inattendue : adresse IP peut-être bloquée après trop d'essais (réessayez dans quelques heures), ou connexion de l'ENT modifiée",
             "unknown": "Une erreur est survenue"
         },
         "step": {
