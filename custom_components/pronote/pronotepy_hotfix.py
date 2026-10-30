@@ -284,7 +284,7 @@ def _parse_html(self, html: str) -> dict:
     # New strategy: look if there is "Start(...)", if not we look if there is "IP"
     match = re.search(r"Start ?\({(?P<param>[^}]*)}\)", html)
     if not match:
-        if "adresse IP" in html or "provisoirement suspendue" in html:
+        if "adresse IP" in html or "IP address" in html or "suspendue" in html or "suspended" in html:
             raise PronoteAPIError("Your IP address is suspended.")
         raise PronoteAPIError(
             "Page html is different than expected. Be sure that pronote_url is the direct url to your pronote page."
