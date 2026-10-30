@@ -30,6 +30,7 @@ dropped once no establishment is left on the old challenge scheme.
 
 import json
 import logging
+import re
 from typing import Optional
 
 from Crypto.Hash import SHA256
@@ -38,7 +39,13 @@ import pronotepy
 from pronotepy import dataClasses
 from pronotepy.clients import ClientBase, ParentClient
 from pronotepy.exceptions import CryptoError, ExpiredObject, PronoteAPIError
-from pronotepy.pronoteAPI import _Encryption, _enleverAlea, _prepare_onglets, log
+from pronotepy.pronoteAPI import (
+    _Communication,
+    _Encryption,
+    _enleverAlea,
+    _prepare_onglets,
+    log,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -271,10 +278,31 @@ def _information_fetch_content(self) -> None:
     ]["V"]
 
 
+def _parse_html(self, html: str) -> dict:
+    # pronotepy raise "IP suspended" when there is "IP" anywhere in the HTML
+    # so it raise an error for SOPHIA ANTIPOLIS and others...
+    # New strategy: look if there is "Start(...)", if not we look if there is "IP"
+    match = re.search(r"Start ?\({(?P<param>[^}]*)}\)", html)
+    if not match:
+        if "adresse IP" in html or "IP address" in html or "suspendue" in html or "suspended" in html:
+            raise PronoteAPIError("Your IP address is suspended.")
+        raise PronoteAPIError(
+            "Page html is different than expected. Be sure that pronote_url is the direct url to your pronote page."
+        )
+    attributes = {}
+    for attr in match.group("param").split(","):
+        key, value = attr.split(":")
+        attributes[key.strip().strip("'\"")] = value.strip().strip("'\"")
+    if "h" not in attributes:
+        raise ValueError("internal exception to retry -> cannot parse html")
+    return attributes
+
+
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
     dataClasses.Information._fetch_content = _information_fetch_content
     ParentClient.post = _parent_post
+    _Communication._parse_html = _parse_html
     _LOGGER.debug("pronotepy hotfixes applied")
 else:
     _LOGGER.warning(
