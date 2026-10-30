@@ -85,6 +85,7 @@
       }
     },
     "error": {
+      "account_locked": "Too many authentication errors, Pronote locks this account for a while: try again in 15 minutes",
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "invalid_qr_code": "No Pronote QR code found, paste the JSON or send a clear picture of the QR code",

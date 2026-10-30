@@ -223,9 +223,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except pronotepy.exceptions.PronoteAPIError as err:
-                if not is_ip_suspended(err):
+                if is_account_locked(err):
+                    errors["base"] = "account_locked"
+                elif is_ip_suspended(err):
+                    errors["base"] = "ip_suspended"
+                else:
                     raise
-                errors["base"] = "ip_suspended"
             else:
                 self.pronote_client = client
 
@@ -266,9 +269,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             except pronotepy.exceptions.PronoteAPIError as err:
-                if not is_ip_suspended(err):
+                if is_account_locked(err):
+                    errors["base"] = "account_locked"
+                elif is_ip_suspended(err):
+                    errors["base"] = "ip_suspended"
+                else:
                     raise
-                errors["base"] = "ip_suspended"
             else:
                 self._user_inputs["qr_code_url"] = client.pronote_url
                 self._user_inputs["qr_code_username"] = client.username
@@ -380,9 +386,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             except pronotepy.exceptions.PronoteAPIError as err:
-                if not is_ip_suspended(err):
+                if is_account_locked(err):
+                    errors["base"] = "account_locked"
+                elif is_ip_suspended(err):
+                    errors["base"] = "ip_suspended"
+                else:
                     raise
-                errors["base"] = "ip_suspended"
             else:
                 updates = user_input
                 if is_qr_code:
