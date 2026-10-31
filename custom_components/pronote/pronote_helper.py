@@ -45,7 +45,15 @@ _LOGGER = logging.getLogger(__name__)
 # - wrong password
 # - expired token
 # - invalid PIN
-AUTH_ERRORS = (pronotepy.exceptions.CryptoError, pronotepy.exceptions.MFAError)
+class AuthenticationFailed(Exception):
+    """Pronote did not log us in (wrong password or revoked token)."""
+
+
+AUTH_ERRORS = (
+    pronotepy.exceptions.CryptoError,
+    pronotepy.exceptions.MFAError,
+    AuthenticationFailed,
+)
 
 
 def get_pronote_server_version(client) -> str:
@@ -117,6 +125,8 @@ def get_client_from_username_password(
             client_identifier=data.get("client_identifier", None),
             ent=ent,
         )
+        if not client.logged_in:
+            raise AuthenticationFailed("username/password rejected")
         del ent
         del client.account_pin
         _LOGGER.info(client.info.name)
@@ -171,7 +181,7 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
     _LOGGER.info(f"Coordinator uses qr_code_username: {qr_code_username}")
     _LOGGER.info(f"Coordinator uses qr_code_pwd: {qr_code_password}")
 
-    return (
+    client = (
         pronotepy.ParentClient if data["account_type"] == "parent" else pronotepy.Client
     ).token_login(
         pronote_url=qr_code_url,
@@ -182,6 +192,9 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
         device_name=qr_code_device_name,
         client_identifier=qr_code_client_identifier,
     )
+    if not client.logged_in:
+        raise AuthenticationFailed("QR/token login rejected")
+    return client
 
 
 def get_day_start_at(lessons):
