@@ -141,6 +141,10 @@ def get_overall_average(period):
         return None
 
 
+# Erreur.G 23: Pronote locks the account for a while; back off so we don't keep it locked
+ACCOUNT_LOCKED_BACKOFF = timedelta(minutes=30)
+
+
 class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     """Data update coordinator for the Pronote integration."""
 
@@ -162,6 +166,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         """Get the latest data from Pronote and updates the state."""
         today = date.today()
         previous_data = None if self.data is None else self.data.copy()
+        # restore the normal interval, a previous account-lock may have extended it
+        self.update_interval = timedelta(
+            minutes=self.config_entry.options.get(
+                "refresh_interval", DEFAULT_REFRESH_INTERVAL
+            )
+        )
 
         config_data = self.config_entry.data
         self.data = {
@@ -202,8 +212,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 f"Pronote authentication failed: {err}"
             ) from err
         except pronotepy.exceptions.PronoteAPIError as err:
-            if not pronote_error(err):
+            if not (error := pronote_error(err)):
                 raise
+            if error == "account_locked":
+                self.update_interval = ACCOUNT_LOCKED_BACKOFF
             client = None
         if client is None:
             # Keep the last data for compare_data on the next update
