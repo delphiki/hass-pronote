@@ -5,8 +5,19 @@
             "reauth_successful": "Réauthentification réussie"
         },
         "error": {
+            "access_denied": "Pronote refuse l'accès, toutes les sessions sont peut-être occupées : réessayez plus tard",
+            "account_locked": "Trop d'erreurs d'authentification, Pronote bloque ce compte pour un moment : réessayez dans un quart d'heure",
             "cannot_connect": "Impossible de se connecter",
             "invalid_auth": "Erreur d'authentification",
+            "invalid_qr_code": "Aucun QR code Pronote trouvé, collez le JSON ou envoyez une photo nette du QR code",
+            "ip_blocked": "Pronote a suspendu cette adresse IP après trop d'essais : réessayez dans quelques heures",
+            "ip_suspended": "Pronote a renvoyé une page inattendue : adresse IP peut-être bloquée après trop d'essais (réessayez dans quelques heures), ou connexion de l'ENT modifiée",
+            "maintenance": "Pronote est en maintenance (opérations en cours sur la base) : réessayez plus tard",
+            "pronote_error": "Pronote a renvoyé une erreur technique : réessayez plus tard",
+            "proxy_refused": "Pronote refuse les connexions par un proxy public, coupez le VPN ou le proxy",
+            "session_expired": "La session Pronote a expiré : réessayez",
+            "site_unavailable": "Le site Pronote est actuellement indisponible : réessayez plus tard",
+            "space_not_published": "Cet espace Pronote n'est pas activé par l'établissement, vérifiez le type de compte",
             "unknown": "Une erreur est survenue"
         },
         "step": {
@@ -17,26 +28,53 @@
             },
             "user": {
                 "data": {
-                    "connection_type": "Type de connection"
+                    "account_type": "Type de compte",
+                    "connection_type": "Type de connexion"
                 }
             },
             "username_password_login": {
                 "data": {
-                    "account_type": "Type de compte",
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
-                    "username": "Identifiant",
-                    "device_name": "Nom de l'appareil",
-                    "account_pin": "PIN du compte"
+                    "username": "Identifiant"
+                },
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
                 }
             },
             "qr_code_login": {
                 "data": {
                     "qr_code_json": "JSON du QR Code",
+                    "qr_code_image": "Photo du QR code",
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
                 },
-                "description": "JSON du QR Code"
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
+                },
+                "description": "Collez le JSON du QR code, ou envoyez-en une photo"
             },
             "reauth_confirm": {
                 "title": "Réauthentification",
@@ -46,11 +84,38 @@
                     "username": "Identifiant",
                     "password": "Mot de passe",
                     "ent": "ENT",
-                    "device_name": "Nom de l'appareil",
-                    "account_pin": "PIN du compte",
                     "qr_code_json": "JSON du QR Code",
+                    "qr_code_image": "Photo du QR code",
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
+                },
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
                 }
+            }
+        }
+    },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "username_password": "Identifiant et mot de passe",
+                "qrcode": "QR code"
+            }
+        },
+        "account_type": {
+            "options": {
+                "eleve": "Élève",
+                "parent": "Parent"
             }
         }
     },

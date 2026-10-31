@@ -48,6 +48,30 @@ _LOGGER = logging.getLogger(__name__)
 AUTH_ERRORS = (pronotepy.exceptions.CryptoError, pronotepy.exceptions.MFAError)
 
 
+# Erreur.G codes, from the TypeHttpErreurRequete enum of the PRONOTE.net server
+PRONOTE_ERRORS = {
+    1: "site_unavailable",
+    2: "maintenance",
+    3: "access_denied",
+    4: "proxy_refused",
+    5: "ip_blocked",
+    6: "invalid_auth",
+    7: "invalid_auth",
+    **dict.fromkeys(range(8, 18), "session_expired"),
+    **dict.fromkeys(range(18, 22), "pronote_error"),
+    22: "space_not_published",
+    23: "account_locked",
+}
+
+
+def pronote_error(err) -> str | None:
+    if not isinstance(err, pronotepy.exceptions.PronoteAPIError):
+        return None
+    if "IP address is suspended" in str(err):
+        return "ip_suspended"
+    return PRONOTE_ERRORS.get(err.pronote_error_code)
+
+
 def get_pronote_server_version(client) -> str:
     """Return the PRONOTE version of the instance, e.g. "2026.2.5.7".
 
@@ -123,6 +147,8 @@ def get_client_from_username_password(
     except AUTH_ERRORS:
         raise
     except Exception as err:
+        if pronote_error(err):
+            raise
         _LOGGER.critical(err)
         return None
 
