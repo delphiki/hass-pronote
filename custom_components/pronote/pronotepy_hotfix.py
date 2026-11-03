@@ -33,12 +33,13 @@ import logging
 from typing import Optional
 
 from Crypto.Hash import SHA256
+from requests.adapters import HTTPAdapter
 
 import pronotepy
 from pronotepy import dataClasses
 from pronotepy.clients import ClientBase, ParentClient
 from pronotepy.exceptions import CryptoError, ExpiredObject, PronoteAPIError
-from pronotepy.pronoteAPI import _Encryption, _enleverAlea, _prepare_onglets, log
+from pronotepy.pronoteAPI import _Communication, _Encryption, _enleverAlea, _prepare_onglets, log
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -283,3 +284,26 @@ else:
         PATCHED_PRONOTEPY_VERSION,
         pronotepy.__version__,
     )
+
+
+REQUEST_TIMEOUT = (10, 60)
+
+
+class _TimeoutAdapter(HTTPAdapter):
+    def send(self, request, **kwargs):
+        if kwargs.get("timeout") is None:
+            kwargs["timeout"] = REQUEST_TIMEOUT
+        return super().send(request, **kwargs)
+
+
+_communication_init = _Communication.__init__
+
+
+def _init_with_timeout(self, *args, **kwargs):
+    _communication_init(self, *args, **kwargs)
+    self.session.mount("https://", _TimeoutAdapter())
+    self.session.mount("http://", _TimeoutAdapter())
+
+
+# pronotepy never sets a timeout, a dead connection hangs the refresh forever
+_Communication.__init__ = _init_with_timeout
