@@ -198,9 +198,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             )
         except AUTH_ERRORS as err:
             # Stop polling and ask the user for new auth
+            self.data = previous_data
             raise ConfigEntryAuthFailed(
                 f"Pronote authentication failed: {err}"
             ) from err
+        except Exception:
+            self.data = previous_data
+            raise
         if client is None:
             # Keep the last data for compare_data on the next update
             self.data = previous_data
