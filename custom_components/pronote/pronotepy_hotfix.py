@@ -42,6 +42,7 @@ from typing import Optional
 
 from bs4 import BeautifulSoup  # hotfix bain3/pronotepy#352
 from Crypto.Hash import SHA256
+import requests
 from requests.adapters import HTTPAdapter
 from urllib.parse import urljoin  # hotfix bain3/pronotepy#352
 
@@ -337,22 +338,7 @@ def _educonnect(session, username, password, url, exceptions=True, **opts):
 ### End Hotfix bain3/pronotepy#352
 
 
-if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
-    ClientBase._login = _login
-    dataClasses.Information._fetch_content = _information_fetch_content
-    ParentClient.post = _parent_post
-    _Communication._parse_html = _parse_html
-    generic_func._educonnect = complex_ent._educonnect = _educonnect  # hotfix bain3/pronotepy#352
-    _LOGGER.debug("pronotepy hotfixes applied")
-else:
-    _LOGGER.warning(
-        "pronotepy hotfixes not applied: expected version %s, got %s. "
-        "It needs to be reviewed against the new version, or removed.",
-        PATCHED_PRONOTEPY_VERSION,
-        pronotepy.__version__,
-    )
-
-
+# pronotepy never sets a timeout, a dead connection hangs the refresh forever
 REQUEST_TIMEOUT = (10, 60)
 
 
@@ -363,14 +349,46 @@ class _TimeoutAdapter(HTTPAdapter):
         return super().send(request, **kwargs)
 
 
+def _mount_timeout(session):
+    session.mount("https://", _TimeoutAdapter())
+    session.mount("http://", _TimeoutAdapter())
+
+
+class _TimeoutSession(requests.Session):
+    def __init__(self):
+        super().__init__()
+        _mount_timeout(self)
+
+
+class _RequestsWithTimeout:
+    # pronotepy.ent opens its own sessions: same module, but with the timeout
+    Session = _TimeoutSession
+
+    def __getattr__(self, name):
+        return getattr(requests, name)
+
+
 _communication_init = _Communication.__init__
 
 
 def _init_with_timeout(self, *args, **kwargs):
     _communication_init(self, *args, **kwargs)
-    self.session.mount("https://", _TimeoutAdapter())
-    self.session.mount("http://", _TimeoutAdapter())
+    _mount_timeout(self.session)
 
 
-# pronotepy never sets a timeout, a dead connection hangs the refresh forever
-_Communication.__init__ = _init_with_timeout
+if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
+    ClientBase._login = _login
+    dataClasses.Information._fetch_content = _information_fetch_content
+    ParentClient.post = _parent_post
+    _Communication._parse_html = _parse_html
+    generic_func._educonnect = complex_ent._educonnect = _educonnect  # hotfix bain3/pronotepy#352
+    _Communication.__init__ = _init_with_timeout
+    generic_func.requests = complex_ent.requests = _RequestsWithTimeout()
+    _LOGGER.debug("pronotepy hotfixes applied")
+else:
+    _LOGGER.warning(
+        "pronotepy hotfixes not applied: expected version %s, got %s. "
+        "It needs to be reviewed against the new version, or removed.",
+        PATCHED_PRONOTEPY_VERSION,
+        pronotepy.__version__,
+    )
