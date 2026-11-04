@@ -225,8 +225,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 await self.hass.async_add_executor_job(client.communication.session.close)
             except Exception:
                 pass
-            # this is class-level and shared across children => clear() would also drop another child periods
-            PronotePeriod.instances.difference_update(client.periods)
+            # shared across children: only drop this client's periods (incl. ones replaced by a refresh())
+            PronotePeriod.instances.difference_update(
+                [p for p in list(PronotePeriod.instances) if p._client is client]
+            )
 
     async def _save_credentials(self, client):
         new_creds = await self.hass.async_add_executor_job(client.export_credentials)
