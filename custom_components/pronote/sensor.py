@@ -1,4 +1,4 @@
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -218,6 +218,22 @@ async def async_setup_entry(
         )
 
     async_add_entities(sensors, False)
+
+    known_period_keys = {
+        slugify(p.name, separator="_") for p in coordinator.data["previous_periods"]
+    }
+
+    @callback
+    def _reload_on_new_period() -> None:
+        # needed so new (tri|se)mestre show up without a restart of HA
+        current = {
+            slugify(p.name, separator="_")
+            for p in (coordinator.data or {}).get("previous_periods", [])
+        }
+        if current - known_period_keys:
+            hass.config_entries.async_schedule_reload(config_entry.entry_id)
+
+    config_entry.async_on_unload(coordinator.async_add_listener(_reload_on_new_period))
 
 
 class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
