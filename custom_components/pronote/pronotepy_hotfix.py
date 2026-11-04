@@ -23,6 +23,13 @@ Without it, a fail login on a parent account made it refresh in a loop and Prono
 BAN the IP.
 See https://github.com/delphiki/hass-pronote/issues/198.
 
+This module also replaces ``_educonnect``: EduConnect now starts with a local
+storage check page and wants its csrf_token on every step, so the old direct
+post got a 400 and looked like a wrong password.
+Remove it, every line tagged "hotfix bain3/pronotepy#352" and this paragraph,
+once https://github.com/bain3/pronotepy/pull/352 is merged + released.
+See https://github.com/delphiki/hass-pronote/issues/172.
+
 The version guard at the bottom of this file disables the patch as soon as
 pronotepy moves on, so this module has to be reviewed on every bump. It can be
 dropped once no establishment is left on the old challenge scheme.
@@ -30,16 +37,27 @@ dropped once no establishment is left on the old challenge scheme.
 
 import json
 import logging
+import re
 from typing import Optional
 
+from bs4 import BeautifulSoup  # hotfix bain3/pronotepy#352
 from Crypto.Hash import SHA256
 from requests.adapters import HTTPAdapter
+from urllib.parse import urljoin  # hotfix bain3/pronotepy#352
 
 import pronotepy
 from pronotepy import dataClasses
 from pronotepy.clients import ClientBase, ParentClient
+from pronotepy.ent import complex_ent, generic_func  # hotfix bain3/pronotepy#352
 from pronotepy.exceptions import CryptoError, ExpiredObject, PronoteAPIError
-from pronotepy.pronoteAPI import _Communication, _Encryption, _enleverAlea, _prepare_onglets, log
+from pronotepy.exceptions import ENTLoginError  # hotfix bain3/pronotepy#352
+from pronotepy.pronoteAPI import (
+    _Communication,
+    _Encryption,
+    _enleverAlea,
+    _prepare_onglets,
+    log,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -272,10 +290,59 @@ def _information_fetch_content(self) -> None:
     ]["V"]
 
 
+class _HtmlIgnoringIp(str):
+    # pronotepy flags any page containing "IP" as a banned IP (e.g. "SOPHIA ANTIPOLIS")
+    def __contains__(self, item):
+        return item != "IP" and super().__contains__(item)
+
+
+_original_parse_html = _Communication._parse_html
+
+
+def _parse_html(self, html: str) -> dict:
+    # trust the "IP suspended" check only when the login page parameters are missing
+    if re.search(r"Start ?\({", html):
+        html = _HtmlIgnoringIp(html)
+    return _original_parse_html(self, html)
+
+
+### Hotfix bain3/pronotepy#352, remove once merged + released
+def _form_fields(form) -> dict:
+    return {i["name"]: i.get("value", "") for i in form.find_all("input") if i.get("name")}
+
+
+def _educonnect(session, username, password, url, exceptions=True, **opts):
+    response = session.get(url, headers=generic_func.HEADERS)
+    form = BeautifulSoup(response.text, "html.parser").find("form")
+    if form and form.find("input", {"name": lambda n: n and n.startswith("shib_idp_ls_")}):
+        response = session.post(
+            urljoin(response.url, form.get("action")), headers=generic_func.HEADERS, data=_form_fields(form)
+        )
+        form = BeautifulSoup(response.text, "html.parser").find("form")
+
+    payload = {
+        **(_form_fields(form) if form else {}),
+        "j_username": username,
+        "j_password": password,
+        "_eventId_proceed": "",
+    }
+    url = urljoin(response.url, form.get("action")) if form else url
+    response = session.post(url, headers=generic_func.HEADERS, data=payload)
+    response = generic_func._sso_redirect(session, response, "SAMLResponse", url, payload)
+    if not response:
+        if exceptions:
+            raise ENTLoginError("Fail to connect with EduConnect : probably wrong login information")
+        return None
+    return response
+### End Hotfix bain3/pronotepy#352
+
+
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
     dataClasses.Information._fetch_content = _information_fetch_content
     ParentClient.post = _parent_post
+    _Communication._parse_html = _parse_html
+    generic_func._educonnect = complex_ent._educonnect = _educonnect  # hotfix bain3/pronotepy#352
     _LOGGER.debug("pronotepy hotfixes applied")
 else:
     _LOGGER.warning(
