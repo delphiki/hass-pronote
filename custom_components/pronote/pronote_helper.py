@@ -90,7 +90,7 @@ def get_pronote_client(data) -> pronotepy.Client | pronotepy.ParentClient | None
 def get_client_from_username_password(
     data,
 ) -> pronotepy.Client | pronotepy.ParentClient | None:
-    url = data["url"]
+    url = data["url"].split("?", 1)[0]
     url = re.sub(r"/[^/]+\.html$", "/", url)
     if not url.endswith("/"):
         url += "/"
@@ -168,8 +168,7 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
         qr_code_device_name = data.get("device_name", None)
         qr_code_client_identifier = data.get("client_identifier", None)
 
-    _LOGGER.info(f"Coordinator uses qr_code_username: {qr_code_username}")
-    _LOGGER.info(f"Coordinator uses qr_code_pwd: {qr_code_password}")
+    _LOGGER.info("Coordinator uses qr_code_username: %s", qr_code_username)
 
     return (
         pronotepy.ParentClient if data["account_type"] == "parent" else pronotepy.Client

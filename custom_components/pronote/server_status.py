@@ -11,6 +11,7 @@ import aiohttp
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
@@ -137,6 +138,15 @@ class PronoteServerStatusSensor(SensorEntity):
                 self.hass, self._async_scheduled_probe, PROBE_INTERVAL
             )
         )
+
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Opt in to in-place entity_id changes (HA 2026.11+).
+
+        Nothing to update here: the probe timer is registered with
+        ``async_on_remove`` and does not depend on the entity_id.
+        """
+        super().async_entity_id_changed(old_entity_id)
 
     async def _async_scheduled_probe(self, now) -> None:
         """Run a probe on the timer and push the new state."""

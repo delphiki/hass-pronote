@@ -418,12 +418,15 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             "lessons_tomorrow",
             "lessons_next_day",
         ]
-        lunch_break_time = datetime.strptime(
-            self.coordinator.config_entry.options.get(
-                "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
-            ),
-            "%H:%M",
-        ).time()
+        try:
+            lunch_break_time = datetime.strptime(
+                self.coordinator.config_entry.options.get(
+                    "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                ),
+                "%H:%M",
+            ).time()
+        except ValueError:
+            lunch_break_time = datetime.strptime(DEFAULT_LUNCH_BREAK_TIME, "%H:%M").time()
 
         if lessons is not None:
             self._start_at = None
@@ -431,9 +434,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in lessons:
-                index = lessons.index(lesson)
-                if not (
+            for index, lesson in enumerate(lessons):
+                if index == 0 or not (
                         lesson.start == lessons[index - 1].start and lesson.canceled is True
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
@@ -820,7 +822,11 @@ class PronoteCurrentPeriodSensor(PronoteGenericSensor):
             "Current period",
             translation_key="current_period",
         )
-        self._state = self.coordinator.data["current_period"].name
+
+    @property
+    def native_value(self):
+        period = self.coordinator.data["current_period"]
+        return period.name if period is not None else "unavailable"
 
     @property
     def extra_state_attributes(self):
