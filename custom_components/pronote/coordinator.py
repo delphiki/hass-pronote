@@ -43,9 +43,9 @@ def get_current_period(client):
         return client.current_period
     except Exception as ex:
         _LOGGER.info("Error getting current period from pronote: %s", ex)
-    now = datetime.now()
+    today = date.today()
     try:
-        periods = [p for p in client.periods if p.start <= now <= p.end]
+        periods = [p for p in client.periods if p.start.date() <= today <= p.end.date()]
     except Exception as ex:
         _LOGGER.info("Error getting periods from pronote: %s", ex)
         return None
@@ -198,9 +198,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             )
         except AUTH_ERRORS as err:
             # Stop polling and ask the user for new auth
+            self.data = previous_data
             raise ConfigEntryAuthFailed(
                 f"Pronote authentication failed: {err}"
             ) from err
+        except Exception:
+            self.data = previous_data
+            raise
         if client is None:
             # Keep the last data for compare_data on the next update
             self.data = previous_data
@@ -208,6 +212,9 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         try:
             return await self._fetch_data(client, today, previous_data)
+        except Exception:
+            self.data = previous_data
+            raise
         finally:
             # A refresh() during the update rotates the token again
             try:
@@ -218,8 +225,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 await self.hass.async_add_executor_job(client.communication.session.close)
             except Exception:
                 pass
-            # Clear the class-level set that accumulates every Period ever created
-            PronotePeriod.instances.clear()
+            # shared across children: only drop this client's periods (incl. ones replaced by a refresh())
+            PronotePeriod.instances.difference_update(
+                [p for p in list(PronotePeriod.instances) if p._client is client]
+            )
 
     async def _save_credentials(self, client):
         new_creds = await self.hass.async_add_executor_job(client.export_credentials)
