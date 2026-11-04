@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -32,6 +33,7 @@ from .const import (
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
+    UPDATE_TIMEOUT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -159,6 +161,16 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.config_entry = entry
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
+        previous_data = None if self.data is None else self.data.copy()
+        try:
+            async with asyncio.timeout(UPDATE_TIMEOUT):
+                return await self._async_update()
+        except BaseException:
+            # a timed out refresh is cancelled mid-way, keep the last data
+            self.data = previous_data
+            raise
+
+    async def _async_update(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Pronote and updates the state."""
         today = date.today()
         previous_data = None if self.data is None else self.data.copy()
