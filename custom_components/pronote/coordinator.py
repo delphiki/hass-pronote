@@ -350,32 +350,15 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["information_and_surveys"] = None
             _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
 
-        # Discussions (Communication > Discussions messaging tab)
+        # Discussions (Pronote order kept: Discussion.date costs one request each)
         try:
             discussions = await self.hass.async_add_executor_job(client.discussions)
-            # Discussion.date is a lazy property (an alias for
-            # Discussion.messages[0].date, i.e. the date of the *first*
-            # message, not the latest one) that makes one extra HTTP request
-            # per discussion the first time it is read. Sorting on it here
-            # would mean one request per discussion on every refresh, which
-            # this integration must avoid, so we deliberately do not touch
-            # it: we keep Pronote's own ordering from the single
-            # "ListeMessagerie" call (already most-recently-active first)
-            # and only cap the list, since HA entity attributes have a size
-            # limit.
             self.data["discussions"] = discussions[:DISCUSSIONS_LIMIT]
         except Exception as ex:
             self.data["discussions"] = None
             _LOGGER.info("Error getting discussions from pronote: %s", ex)
 
-        # pronotepy's Discussion has no usable unique id (its docstring
-        # advertises one, but it is never actually set), and its "unread"
-        # count changes simply by reading a message in the Pronote app, so
-        # it cannot be used to detect new activity without also firing on
-        # every read. We identify a discussion by (subject, creator): this
-        # fires "new_discussion" when a genuinely new conversation appears,
-        # at the cost of missing a new message posted in an already known
-        # thread (there is no cheap signal for that, see above).
+        # No usable Discussion id in pronotepy: identify by (subject, creator)
         self.compare_data(
             previous_data,
             "discussions",

@@ -16,8 +16,7 @@ INFO_SURVEY_LIMIT_MAX_DAYS = 7
 
 HOMEWORK_DESC_MAX_LENGTH = 125
 
-# HA entity attributes have a size limit, so the discussions list exposed as
-# an attribute is capped to the N most recently active discussions.
+# Cap on the discussions exposed as an attribute (HA attribute size limit)
 DISCUSSIONS_LIMIT = 50
 
 # default values for options
