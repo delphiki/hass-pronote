@@ -312,7 +312,8 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         """Return if entity is available."""
         return (
                 self.coordinator.last_update_success
-                and self.coordinator.data[self._coordinator_key] is not None
+                # a period sensor's key is gone when its period is no longer returned
+                and self.coordinator.data.get(self._coordinator_key) is not None
         )
 
 
