@@ -278,24 +278,20 @@ def _information_fetch_content(self) -> None:
     ]["V"]
 
 
+class _HtmlIgnoringIp(str):
+    # pronotepy flags any page containing "IP" as a banned IP (e.g. "SOPHIA ANTIPOLIS")
+    def __contains__(self, item):
+        return item != "IP" and super().__contains__(item)
+
+
+_original_parse_html = _Communication._parse_html
+
+
 def _parse_html(self, html: str) -> dict:
-    # pronotepy raise "IP suspended" when there is "IP" anywhere in the HTML
-    # so it raise an error for SOPHIA ANTIPOLIS and others...
-    # New strategy: look if there is "Start(...)", if not we look if there is "IP"
-    match = re.search(r"Start ?\({(?P<param>[^}]*)}\)", html)
-    if not match:
-        if "adresse IP" in html or "IP address" in html or "suspendue" in html or "suspended" in html:
-            raise PronoteAPIError("Your IP address is suspended.")
-        raise PronoteAPIError(
-            "Page html is different than expected. Be sure that pronote_url is the direct url to your pronote page."
-        )
-    attributes = {}
-    for attr in match.group("param").split(","):
-        key, value = attr.split(":")
-        attributes[key.strip().strip("'\"")] = value.strip().strip("'\"")
-    if "h" not in attributes:
-        raise ValueError("internal exception to retry -> cannot parse html")
-    return attributes
+    # trust the "IP suspended" check only when the login page parameters are missing
+    if re.search(r"Start ?\({", html):
+        html = _HtmlIgnoringIp(html)
+    return _original_parse_html(self, html)
 
 
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
