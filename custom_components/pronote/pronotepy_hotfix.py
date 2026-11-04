@@ -37,6 +37,7 @@ dropped once no establishment is left on the old challenge scheme.
 
 import json
 import logging
+import re
 from typing import Optional
 
 from bs4 import BeautifulSoup  # hotfix bain3/pronotepy#352
@@ -49,7 +50,13 @@ from pronotepy.clients import ClientBase, ParentClient
 from pronotepy.ent import complex_ent, generic_func  # hotfix bain3/pronotepy#352
 from pronotepy.exceptions import CryptoError, ExpiredObject, PronoteAPIError
 from pronotepy.exceptions import ENTLoginError  # hotfix bain3/pronotepy#352
-from pronotepy.pronoteAPI import _Encryption, _enleverAlea, _prepare_onglets, log
+from pronotepy.pronoteAPI import (
+    _Communication,
+    _Encryption,
+    _enleverAlea,
+    _prepare_onglets,
+    log,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -282,6 +289,22 @@ def _information_fetch_content(self) -> None:
     ]["V"]
 
 
+class _HtmlIgnoringIp(str):
+    # pronotepy flags any page containing "IP" as a banned IP (e.g. "SOPHIA ANTIPOLIS")
+    def __contains__(self, item):
+        return item != "IP" and super().__contains__(item)
+
+
+_original_parse_html = _Communication._parse_html
+
+
+def _parse_html(self, html: str) -> dict:
+    # trust the "IP suspended" check only when the login page parameters are missing
+    if re.search(r"Start ?\({", html):
+        html = _HtmlIgnoringIp(html)
+    return _original_parse_html(self, html)
+
+
 ### Hotfix bain3/pronotepy#352, remove once merged + released
 def _form_fields(form) -> dict:
     return {i["name"]: i.get("value", "") for i in form.find_all("input") if i.get("name")}
@@ -317,6 +340,7 @@ if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
     dataClasses.Information._fetch_content = _information_fetch_content
     ParentClient.post = _parent_post
+    _Communication._parse_html = _parse_html
     generic_func._educonnect = complex_ent._educonnect = _educonnect  # hotfix bain3/pronotepy#352
     _LOGGER.debug("pronotepy hotfixes applied")
 else:
