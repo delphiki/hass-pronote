@@ -1,5 +1,6 @@
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import slugify as ha_slugify
@@ -57,6 +58,7 @@ async def async_setup_entry(
 
     sensors = [
         PronoteClassSensor(coordinator),
+        PronoteVersionSensor(coordinator),
         PronoteTimetableSensor(
             coordinator, key="lessons_today", name="Today's timetable",
             translation_key="lessons_today",
@@ -217,6 +219,22 @@ async def async_setup_entry(
 
     async_add_entities(sensors, False)
 
+    known_period_keys = {
+        slugify(p.name, separator="_") for p in coordinator.data["previous_periods"]
+    }
+
+    @callback
+    def _reload_on_new_period() -> None:
+        # needed so new (tri|se)mestre show up without a restart of HA
+        current = {
+            slugify(p.name, separator="_")
+            for p in (coordinator.data or {}).get("previous_periods", [])
+        }
+        if current - known_period_keys:
+            hass.config_entries.async_schedule_reload(config_entry.entry_id)
+
+    config_entry.async_on_unload(coordinator.async_add_listener(_reload_on_new_period))
+
 
 class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
@@ -269,12 +287,15 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        if self.coordinator.data[self._coordinator_key] is None:
+        value = self.coordinator.data[self._coordinator_key]
+        if value is None:
             return "unavailable"
-        elif self._state is not None:
-            return self._state
-        else:
-            return self.coordinator.data[self._coordinator_key]
+        # Computed from the current data, _state was set once at setup
+        if isinstance(value, (list, tuple, dict)):
+            return len(value)
+        if isinstance(value, (str, int, float, datetime)):
+            return value
+        return self._state
 
     @property
     def extra_state_attributes(self):
@@ -291,7 +312,8 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         """Return if entity is available."""
         return (
                 self.coordinator.last_update_success
-                and self.coordinator.data[self._coordinator_key] is not None
+                # a period sensor's key is gone when its period is no longer returned
+                and self.coordinator.data.get(self._coordinator_key) is not None
         )
 
 
@@ -318,16 +340,20 @@ class PronotePeriodRelatedSensor(PronoteGenericSensor):
             translation_placeholders=translation_placeholders,
         )
         self._period_key = period_key
-        self._is_current_period = period_key == slugify(
-            coordinator.data["current_period"].name, separator="_"
-        )
+        # Current period sensors (no period suffix) follow the period changes
+        self._follows_current_period = not key.endswith(f"_{period_key}")
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = super().extra_state_attributes
-        attributes["period_key"] = self._period_key
-        attributes["is_current_period"] = self._is_current_period
+        current_period = self.coordinator.data["current_period"]
+        current_period_key = (
+            slugify(current_period.name, separator="_") if current_period else None
+        )
+        period_key = current_period_key if self._follows_current_period else self._period_key
+        attributes["period_key"] = period_key
+        attributes["is_current_period"] = period_key == current_period_key
 
         return attributes
 
@@ -354,8 +380,26 @@ class PronoteClassSensor(PronoteGenericSensor):
         }
 
 
+class PronoteVersionSensor(PronoteGenericSensor):
+    """Version of the Pronote instance of the establishment."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(
+            coordinator,
+            "pronote_version",
+            "Pronote version",
+            translation_key="pronote_version",
+        )
+
+
 class PronoteTimetableSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
+
+    # Recorder is limited to 16KB, period's lessons will exceed that
+    _unrecorded_attributes = frozenset({"lessons"})
 
     def __init__(
             self,
@@ -391,12 +435,15 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             "lessons_tomorrow",
             "lessons_next_day",
         ]
-        lunch_break_time = datetime.strptime(
-            self.coordinator.config_entry.options.get(
-                "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
-            ),
-            "%H:%M",
-        ).time()
+        try:
+            lunch_break_time = datetime.strptime(
+                self.coordinator.config_entry.options.get(
+                    "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                ),
+                "%H:%M",
+            ).time()
+        except ValueError:
+            lunch_break_time = datetime.strptime(DEFAULT_LUNCH_BREAK_TIME, "%H:%M").time()
 
         if lessons is not None:
             self._start_at = None
@@ -404,9 +451,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in lessons:
-                index = lessons.index(lesson)
-                if not (
+            for index, lesson in enumerate(lessons):
+                if index == 0 or not (
                         lesson.start == lessons[index - 1].start and lesson.canceled is True
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
@@ -471,9 +517,9 @@ class PronoteGradesSensor(PronotePeriodRelatedSensor):
         index_note = 0
         if self.coordinator.data[self._key] is not None:
             for grade in self.coordinator.data[self._key]:
-                index_note += 1
                 if index_note == GRADES_TO_DISPLAY:
                     break
+                index_note += 1
                 grades.append(format_grade(grade))
 
         attributes["grades"] = grades
@@ -601,6 +647,9 @@ class PronoteDelaysSensor(PronotePeriodRelatedSensor):
 class PronoteEvaluationsSensor(PronotePeriodRelatedSensor):
     """Representation of a Pronote sensor."""
 
+    # Recorder is limited to 16KB, evaluations and their acquisitions exceed that
+    _unrecorded_attributes = frozenset({"evaluations"})
+
     def __init__(
             self,
             coordinator: PronoteDataUpdateCoordinator,
@@ -630,9 +679,9 @@ class PronoteEvaluationsSensor(PronotePeriodRelatedSensor):
         index_note = 0
         if self.coordinator.data[self._key] is not None:
             for evaluation in self.coordinator.data[self._key]:
-                index_note += 1
                 if index_note == EVALUATIONS_TO_DISPLAY:
                     break
+                index_note += 1
                 evaluations.append(format_evaluation(evaluation))
 
         attributes["evaluations"] = evaluations
@@ -790,7 +839,11 @@ class PronoteCurrentPeriodSensor(PronoteGenericSensor):
             "Current period",
             translation_key="current_period",
         )
-        self._state = self.coordinator.data["current_period"].name
+
+    @property
+    def native_value(self):
+        period = self.coordinator.data["current_period"]
+        return period.name if period is not None else "unavailable"
 
     @property
     def extra_state_attributes(self):

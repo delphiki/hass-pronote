@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from datetime import timedelta
 
@@ -25,8 +26,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
         new = {**config_entry.data}
         new["connection_type"] = "username_password"
 
-        config_entry.version = 2
-        hass.config_entries.async_update_entry(config_entry, data=new)
+        hass.config_entries.async_update_entry(config_entry, data=new, version=2)
 
     _LOGGER.debug("Migration to version %s successful", config_entry.version)
 
@@ -40,6 +40,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = PronoteDataUpdateCoordinator(hass, entry)
 
     await coordinator.async_refresh()
+
+    # Stop polling if credentials are rejected
+    if isinstance(coordinator.last_exception, ConfigEntryAuthFailed):
+        raise coordinator.last_exception
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,

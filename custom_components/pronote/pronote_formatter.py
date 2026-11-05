@@ -220,6 +220,16 @@ def format_menu(menu) -> dict:
 
 
 def format_information_and_survey(information_and_survey) -> dict:
+    try:
+        attachments = format_attachment_list(information_and_survey.attachments())
+    except AttributeError:
+        attachments = []
+
+    try:
+        content = information_and_survey.content()
+    except AttributeError:
+        content = None
+
     return {
         "author": information_and_survey.author,
         "title": information_and_survey.title,
@@ -230,10 +240,10 @@ def format_information_and_survey(information_and_survey) -> dict:
         "category": information_and_survey.category,
         "survey": information_and_survey.survey,
         "anonymous_response": information_and_survey.anonymous_response,
-        "attachments": format_attachment_list(information_and_survey.attachments()),
+        "attachments": attachments,
         "template": information_and_survey.template,
         "shared_template": information_and_survey.shared_template,
-        "content": information_and_survey.content(),
+        "content": content,
     }
 
 

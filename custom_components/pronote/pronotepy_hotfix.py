@@ -1,36 +1,79 @@
-"""Temporary hotfix for pronotepy 2.15.6 login against migrated PRONOTE instances.
+"""Keeps PRONOTE instances that still use the login alea working.
 
 Since 2026-09-02, PRONOTE instances no longer use the "alea" in the login
 challenge: they expect the raw challenge string to be re-encrypted as is,
 instead of being decrypted, stripped of its alea, then re-encrypted.
-pronotepy 2.15.6 only implements the old behaviour and fails with
-``CryptoError: Decryption failed while trying to un pad``.
+
+pronotepy 2.15.7 handles the new behaviour, but only that one: it dropped the
+old code path entirely, so instances that have not been migrated yet stop
+working. This module replaces ``ClientBase._login`` with the 2.15.7
+implementation supporting both: the old path is tried first, and the raw
+challenge is used when it fails.
+
+Keeping that order matters. Deciding between the two schemes is done locally,
+before anything is sent, so a single Authentification request is issued either
+way and PRONOTE never records a failed login attempt.
 
 See https://github.com/bain3/pronotepy/issues/346 and
 https://github.com/delphiki/hass-pronote/issues/172.
 
-This module replaces ``ClientBase._login`` with the upstream 2.15.6
-implementation plus a fallback on the raw challenge, so that both migrated and
-non migrated instances keep working. It must be dropped as soon as the fix is
-released upstream, hence the version guard at the bottom of this file.
+This module also replaces ``ParentClient.post``, which lacks the refresh recursion
+guard of ``ClientBase.post``.
+Without it, a fail login on a parent account made it refresh in a loop and Pronote
+BAN the IP.
+See https://github.com/delphiki/hass-pronote/issues/198.
+
+This module also replaces ``_educonnect``: EduConnect now starts with a local
+storage check page and wants its csrf_token on every step, so the old direct
+post got a 400 and looked like a wrong password.
+Remove it, every line tagged "hotfix bain3/pronotepy#352" and this paragraph,
+once https://github.com/bain3/pronotepy/pull/352 is merged + released.
+See https://github.com/delphiki/hass-pronote/issues/172.
+
+The version guard at the bottom of this file disables the patch as soon as
+pronotepy moves on, so this module has to be reviewed on every bump. It can be
+dropped once no establishment is left on the old challenge scheme.
 """
 
 import json
 import logging
+import re
 from typing import Optional
 
+from bs4 import BeautifulSoup  # hotfix bain3/pronotepy#352
 from Crypto.Hash import SHA256
+import requests
+from requests.adapters import HTTPAdapter
+from urllib.parse import urljoin  # hotfix bain3/pronotepy#352
 
 import pronotepy
 from pronotepy import dataClasses
-from pronotepy.clients import ClientBase
-from pronotepy.exceptions import CryptoError, PronoteAPIError
-from pronotepy.pronoteAPI import _Encryption, _enleverAlea, _prepare_onglets, log
+from pronotepy.clients import ClientBase, ParentClient
+from pronotepy.ent import complex_ent, generic_func  # hotfix bain3/pronotepy#352
+from pronotepy.exceptions import CryptoError, ExpiredObject, PronoteAPIError
+from pronotepy.exceptions import ENTLoginError  # hotfix bain3/pronotepy#352
+from pronotepy.pronoteAPI import (
+    _Communication,
+    _Encryption,
+    _enleverAlea,
+    _prepare_onglets,
+    log,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-# pronotepy version this patched _login has been copied from.
-PATCHED_PRONOTEPY_VERSION = "2.15.6"
+# pronotepy version this patched _login and post have been copied from.
+PATCHED_PRONOTEPY_VERSION = "2.15.7"
+
+
+def _server_version(client) -> str:
+    """PRONOTE version of the instance, for diagnostics.
+
+    Imported lazily because ``pronote_helper`` imports this module.
+    """
+    from .pronote_helper import get_pronote_server_version
+
+    return get_pronote_server_version(client)
 
 
 def _login(self) -> bool:
@@ -96,10 +139,11 @@ def _login(self) -> bool:
         # happens to succeed on the garbage bytes a migrated instance yields:
         # decrypting its challenge with the derived key is meaningless, so the
         # last byte is a valid padding length once in a while.
+        version = _server_version(self)
         if self.login_mode == "qr_code":
-            hint = "exception happened during login -> probably the qr code has expired (qr code is valid during 10 minutes)"
+            hint = f"exception happened during login on PRONOTE {version} -> probably the qr code has expired (qr code is valid during 10 minutes)"
         else:
-            hint = "exception happened during login -> probably bad username/password"
+            hint = f"exception happened during login on PRONOTE {version} -> probably bad username/password"
         if isinstance(ex, CryptoError):
             ex.args += (hint,)
             challenge_error = ex
@@ -109,7 +153,10 @@ def _login(self) -> bool:
         # the raw challenge to be re-encrypted as is. Try that before giving
         # up, and keep the error around so that it can still be raised (with
         # its helpful message) if the authentification below fails anyway.
-        log.debug("challenge decryption failed, falling back to the raw challenge")
+        log.debug(
+            "PRONOTE %s: challenge decryption failed, falling back to the raw challenge",
+            version,
+        )
         ch = e.aes_encrypt(challenge.encode()).hex()
 
     # send
@@ -173,13 +220,175 @@ def _login(self) -> bool:
         return False
 
 
+def _parent_post(
+    self,
+    function_name: str,
+    onglet: Optional[int] = None,
+    data: Optional[dict] = None,
+) -> dict:
+    """Upstream ParentClient.post with the refresh recursion guard of ClientBase."""
+    post_data = {}
+    if onglet:
+        post_data["Signature"] = {
+            "onglet": onglet,
+            "membre": {"N": self._selected_child.id, "G": 4},
+        }
+
+    if data:
+        post_data["data"] = data
+
+    try:
+        return self.communication.post(function_name, post_data)
+    except PronoteAPIError as e:
+        if isinstance(e, ExpiredObject):
+            raise e
+
+        log.info(
+            f"Have you tried turning it off and on again? ERROR: {e.pronote_error_code} | {e.pronote_error_msg}"
+        )
+
+        # prevent refresh recursion
+        if self._refreshing:
+            raise e
+        self._refreshing = True
+        try:
+            self.refresh()
+        finally:
+            self._refreshing = False
+
+        return self.communication.post(function_name, post_data)
+
+
+def _information_fetch_content(self) -> None:
+    """Upstream 2.15.6 implementation, with the user's genre instead of a hardcoded 4.
+
+    On parent accounts (genre 5), PRONOTE rejects the request with
+    "La page a expiré !" and pronotepy calls refresh(), a full re-login.
+    """
+    if self._raw_content is not None:
+        return
+
+    genre = self._client.info.raw_resource.get("G", 4)
+    resp = self._client.post(
+        "PageActualites",
+        8,
+        {
+            "actualite": {
+                "N": self.id,
+                "genrePublic": genre,
+                "public": {
+                    "N": self._client.info.id,
+                    "G": genre,
+                },
+            },
+            "genreRequeteActualite": 1,
+            "modeAffActu": 0,
+        },
+    )
+
+    self._raw_content = resp["dataSec"]["data"]["detailsActualite"][
+        "listeQuestions"
+    ]["V"]
+
+
+class _HtmlIgnoringIp(str):
+    # pronotepy flags any page containing "IP" as a banned IP (e.g. "SOPHIA ANTIPOLIS")
+    def __contains__(self, item):
+        return item != "IP" and super().__contains__(item)
+
+
+_original_parse_html = _Communication._parse_html
+
+
+def _parse_html(self, html: str) -> dict:
+    # trust the "IP suspended" check only when the login page parameters are missing
+    if re.search(r"Start ?\({", html):
+        html = _HtmlIgnoringIp(html)
+    return _original_parse_html(self, html)
+
+
+### Hotfix bain3/pronotepy#352, remove once merged + released
+def _form_fields(form) -> dict:
+    return {i["name"]: i.get("value", "") for i in form.find_all("input") if i.get("name")}
+
+
+def _educonnect(session, username, password, url, exceptions=True, **opts):
+    response = session.get(url, headers=generic_func.HEADERS)
+    form = BeautifulSoup(response.text, "html.parser").find("form")
+    if form and form.find("input", {"name": lambda n: n and n.startswith("shib_idp_ls_")}):
+        response = session.post(
+            urljoin(response.url, form.get("action")), headers=generic_func.HEADERS, data=_form_fields(form)
+        )
+        form = BeautifulSoup(response.text, "html.parser").find("form")
+
+    payload = {
+        **(_form_fields(form) if form else {}),
+        "j_username": username,
+        "j_password": password,
+        "_eventId_proceed": "",
+    }
+    url = urljoin(response.url, form.get("action")) if form else url
+    response = session.post(url, headers=generic_func.HEADERS, data=payload)
+    response = generic_func._sso_redirect(session, response, "SAMLResponse", url, payload)
+    if not response:
+        if exceptions:
+            raise ENTLoginError("Fail to connect with EduConnect : probably wrong login information")
+        return None
+    return response
+### End Hotfix bain3/pronotepy#352
+
+
+# pronotepy never sets a timeout, a dead connection hangs the refresh forever
+REQUEST_TIMEOUT = (10, 60)
+
+
+class _TimeoutAdapter(HTTPAdapter):
+    def send(self, request, **kwargs):
+        if kwargs.get("timeout") is None:
+            kwargs["timeout"] = REQUEST_TIMEOUT
+        return super().send(request, **kwargs)
+
+
+def _mount_timeout(session):
+    session.mount("https://", _TimeoutAdapter())
+    session.mount("http://", _TimeoutAdapter())
+
+
+class _TimeoutSession(requests.Session):
+    def __init__(self):
+        super().__init__()
+        _mount_timeout(self)
+
+
+class _RequestsWithTimeout:
+    # pronotepy.ent opens its own sessions: same module, but with the timeout
+    Session = _TimeoutSession
+
+    def __getattr__(self, name):
+        return getattr(requests, name)
+
+
+_communication_init = _Communication.__init__
+
+
+def _init_with_timeout(self, *args, **kwargs):
+    _communication_init(self, *args, **kwargs)
+    _mount_timeout(self.session)
+
+
 if pronotepy.__version__ == PATCHED_PRONOTEPY_VERSION:
     ClientBase._login = _login
-    _LOGGER.debug("pronotepy login hotfix applied")
+    dataClasses.Information._fetch_content = _information_fetch_content
+    ParentClient.post = _parent_post
+    _Communication._parse_html = _parse_html
+    generic_func._educonnect = complex_ent._educonnect = _educonnect  # hotfix bain3/pronotepy#352
+    _Communication.__init__ = _init_with_timeout
+    generic_func.requests = complex_ent.requests = _RequestsWithTimeout()
+    _LOGGER.debug("pronotepy hotfixes applied")
 else:
     _LOGGER.warning(
-        "pronotepy login hotfix not applied: expected version %s, got %s. "
-        "It can most likely be removed.",
+        "pronotepy hotfixes not applied: expected version %s, got %s. "
+        "It needs to be reviewed against the new version, or removed.",
         PATCHED_PRONOTEPY_VERSION,
         pronotepy.__version__,
     )

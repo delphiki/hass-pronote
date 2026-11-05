@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 import uuid
 
@@ -14,6 +15,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
+from homeassistant.helpers.redact import async_redact_data
 
 ### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -57,6 +59,16 @@ from .const import (
 
 
 _LOGGER = logging.getLogger(__name__)
+
+# Not written to the logs
+TO_REDACT = {
+    "password",
+    "account_pin",
+    "qr_code_json",
+    "qr_code_pin",
+    "qr_code_password",
+    "qr_code_uuid",
+}
 
 
 def get_ent_list() -> dict[str]:
@@ -135,7 +147,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("User Input: %s", user_input)
+                _LOGGER.debug(
+                    "User Input: %s", async_redact_data(user_input, TO_REDACT)
+                )
                 user_input["account_type"] = self._user_inputs["account_type"]
                 self._user_inputs.update(user_input)
                 client = await self.hass.async_add_executor_job(
@@ -144,7 +158,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if client is None:
                     raise InvalidAuth
-            except pronotepy.exceptions.CryptoError:
+            except AUTH_ERRORS:
                 errors["base"] = "invalid_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
@@ -152,7 +166,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.pronote_client = client
 
                 if user_input["account_type"] == "parent":
-                    _LOGGER.debug("_User Inputs UP Parent: %s", self._user_inputs)
+                    _LOGGER.debug(
+                        "_User Inputs UP Parent: %s",
+                        async_redact_data(self._user_inputs, TO_REDACT),
+                    )
                     return await self.async_step_parent()
 
                 return await self.async_step_nickname()
@@ -171,7 +188,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("User Input: %s", self._user_inputs)
+                _LOGGER.debug(
+                    "User Input: %s", async_redact_data(self._user_inputs, TO_REDACT)
+                )
                 user_input["account_type"] = self._user_inputs["account_type"]
                 user_input["qr_code_uuid"] = str(uuid.uuid4())
 
@@ -181,7 +200,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if client is None:
                     raise InvalidAuth
-            except InvalidAuth:
+            except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             else:
                 self._user_inputs["qr_code_url"] = client.pronote_url
@@ -222,7 +241,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._user_inputs["child"] = user_input["child"]
-        _LOGGER.debug("Parent Input UP: %s", self._user_inputs)
+        _LOGGER.debug(
+            "Parent Input UP: %s", async_redact_data(self._user_inputs, TO_REDACT)
+        )
         return await self.async_step_nickname()
 
     async def async_step_nickname(self, user_input: dict | None = None) -> FlowResult:
@@ -255,6 +276,64 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="nickname",
             data_schema=STEP_NICKNAME_SCHEMA,
+        )
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """Handle re-authentication when Pronote rejects credentials."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
+        """Ask for new credentials to keep the same entry and entities."""
+        entry = self._get_reauth_entry()
+        is_qr_code = entry.data["connection_type"] == "qrcode"
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            data = {**entry.data, **user_input}
+            try:
+                client = await self.hass.async_add_executor_job(
+                    (
+                        get_client_from_qr_code
+                        if is_qr_code
+                        else get_client_from_username_password
+                    ),
+                    data,
+                )
+                if client is None:
+                    raise InvalidAuth
+            except (InvalidAuth, *AUTH_ERRORS):
+                errors["base"] = "invalid_auth"
+            else:
+                updates = user_input
+                if is_qr_code:
+                    # don't keep the QR code, only the result
+                    updates = {
+                        "qr_code_url": client.pronote_url,
+                        "qr_code_username": client.username,
+                        "qr_code_password": client.password,
+                        "qr_code_uuid": client.uuid,
+                        "uuid": client.uuid,
+                    }
+                    # we keep the 2FA answers, so the next token login won't ask for it
+                    for key in ("account_pin", "device_name"):
+                        if user_input.get(key):
+                            updates[key] = user_input[key]
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, **updates}
+                )
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+
+        schema = STEP_USER_DATA_SCHEMA_QR if is_qr_code else STEP_USER_DATA_SCHEMA_UP
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=self.add_suggested_values_to_schema(
+                schema, {k: v for k, v in entry.data.items() if k != "password"}
+            ),
+            errors=errors,
+            description_placeholders={"name": entry.title},
         )
 
     @staticmethod
