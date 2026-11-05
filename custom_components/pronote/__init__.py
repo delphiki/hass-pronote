@@ -26,8 +26,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
         new = {**config_entry.data}
         new["connection_type"] = "username_password"
 
-        config_entry.version = 2
-        hass.config_entries.async_update_entry(config_entry, data=new)
+        hass.config_entries.async_update_entry(config_entry, data=new, version=2)
 
     _LOGGER.debug("Migration to version %s successful", config_entry.version)
 
