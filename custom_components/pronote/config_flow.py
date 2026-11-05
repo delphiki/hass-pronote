@@ -145,8 +145,8 @@ def decode_qr_code_image(hass: HomeAssistant, file_id: str) -> str:
         from PIL import Image
         from pyzbar.pyzbar import decode
     except (ImportError, OSError) as ex:
-        # pyzbar needs the zbar system library
-        _LOGGER.warning("Can't read the QR code picture: %s", ex)
+        # pyzbar/zbar is shipped with HA's core qrcode integration
+        _LOGGER.info("Can't read the QR code picture: %s", ex)
         raise InvalidQRCode from ex
 
     try:
