@@ -129,7 +129,7 @@ async def async_setup_entry(
             translation_key="next_alarm",
         ),
         PronoteMenusSensor(coordinator),
-        PronotePeriodRelatedSensor(
+        PronoteOverallAverageSensor(
             coordinator,
             key="overall_average",
             name="Overall average",
@@ -206,7 +206,7 @@ async def async_setup_entry(
                     translation_key="punishments_period",
                     translation_placeholders=placeholders,
                 ),
-                PronotePeriodRelatedSensor(
+                PronoteOverallAverageSensor(
                     coordinator,
                     key=f"overall_average_{period_key}",
                     name=f"Overall average {period.name}",
@@ -342,8 +342,6 @@ class PronotePeriodRelatedSensor(PronoteGenericSensor):
             translation_placeholders=translation_placeholders,
         )
         self._period_key = period_key
-        if key.startswith("overall_average"):
-            self._attr_state_class = SensorStateClass.MEASUREMENT
         # Current period sensors (no period suffix) follow the period changes
         self._follows_current_period = not key.endswith(f"_{period_key}")
 
@@ -360,6 +358,10 @@ class PronotePeriodRelatedSensor(PronoteGenericSensor):
         attributes["is_current_period"] = period_key == current_period_key
 
         return attributes
+
+
+class PronoteOverallAverageSensor(PronotePeriodRelatedSensor):
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
 
 class PronoteClassSensor(PronoteGenericSensor):
