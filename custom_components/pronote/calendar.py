@@ -4,6 +4,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
+from homeassistant.util import slugify
 from homeassistant.util.dt import get_time_zone
 from zoneinfo import ZoneInfo
 
@@ -62,15 +63,16 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
         """Initialize the ReCollect Waste entity."""
         super().__init__(coordinator, entry)
 
-        child_info = coordinator.data["child_info"]
-        calendar_name = child_info.name
-        nickname = self.coordinator.config_entry.options.get("nickname", "")
-        if nickname != "":
-            calendar_name = nickname
+        child_name = coordinator.data["child_info"].name
 
+        # The device name ("Pronote - <child>") already identifies the child,
+        # so the entity name is just the translated "Timetable".
+        self._attr_has_entity_name = True
         self._attr_translation_key = "timetable"
-        self._attr_translation_placeholders = {"child": calendar_name}
         self._attr_unique_id = f"{coordinator.data['sensor_prefix']}-timetable"
+        # Pin the entity_id to the one generated before has_entity_name was
+        # enabled, so new installs keep calendar.pronote_<child>.
+        self.entity_id = f"calendar.{slugify(f'Pronote - {child_name}')}"
         self._attr_device_info = DeviceInfo(
             name=f"Pronote - {self.coordinator.data['child_info'].name}",
             identifiers={(DOMAIN, self.coordinator.data["child_info"].name)},
