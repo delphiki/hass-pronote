@@ -110,7 +110,7 @@
             "active_periods": { "name": "Périodes actives" }
         },
         "calendar": {
-            "timetable": { "name": "Emploi du temps de {child}" }
+            "timetable": { "name": "Emploi du temps" }
         }
     }
 }

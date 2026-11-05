@@ -1,4 +1,4 @@
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -220,6 +220,22 @@ async def async_setup_entry(
 
     async_add_entities(sensors, False)
 
+    known_period_keys = {
+        slugify(p.name, separator="_") for p in coordinator.data["previous_periods"]
+    }
+
+    @callback
+    def _reload_on_new_period() -> None:
+        # needed so new (tri|se)mestre show up without a restart of HA
+        current = {
+            slugify(p.name, separator="_")
+            for p in (coordinator.data or {}).get("previous_periods", [])
+        }
+        if current - known_period_keys:
+            hass.config_entries.async_schedule_reload(config_entry.entry_id)
+
+    config_entry.async_on_unload(coordinator.async_add_listener(_reload_on_new_period))
+
 
 class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Pronote sensor."""
@@ -298,7 +314,8 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         """Return if entity is available."""
         return (
                 self.coordinator.last_update_success
-                and self.coordinator.data[self._coordinator_key] is not None
+                # a period sensor's key is gone when its period is no longer returned
+                and self.coordinator.data.get(self._coordinator_key) is not None
         )
 
 
@@ -422,12 +439,15 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             "lessons_tomorrow",
             "lessons_next_day",
         ]
-        lunch_break_time = datetime.strptime(
-            self.coordinator.config_entry.options.get(
-                "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
-            ),
-            "%H:%M",
-        ).time()
+        try:
+            lunch_break_time = datetime.strptime(
+                self.coordinator.config_entry.options.get(
+                    "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                ),
+                "%H:%M",
+            ).time()
+        except ValueError:
+            lunch_break_time = datetime.strptime(DEFAULT_LUNCH_BREAK_TIME, "%H:%M").time()
 
         if lessons is not None:
             self._start_at = None
@@ -435,9 +455,8 @@ class PronoteTimetableSensor(PronoteGenericSensor):
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in lessons:
-                index = lessons.index(lesson)
-                if not (
+            for index, lesson in enumerate(lessons):
+                if index == 0 or not (
                         lesson.start == lessons[index - 1].start and lesson.canceled is True
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
@@ -824,7 +843,11 @@ class PronoteCurrentPeriodSensor(PronoteGenericSensor):
             "Current period",
             translation_key="current_period",
         )
-        self._state = self.coordinator.data["current_period"].name
+
+    @property
+    def native_value(self):
+        period = self.coordinator.data["current_period"]
+        return period.name if period is not None else "unavailable"
 
     @property
     def extra_state_attributes(self):
