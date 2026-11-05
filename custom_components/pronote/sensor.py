@@ -6,6 +6,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import slugify as ha_slugify
 from homeassistant.components.sensor import (
     SensorDeviceClass,
+    SensorStateClass,
     SensorEntity,
 )
 
@@ -128,7 +129,7 @@ async def async_setup_entry(
             translation_key="next_alarm",
         ),
         PronoteMenusSensor(coordinator),
-        PronotePeriodRelatedSensor(
+        PronoteOverallAverageSensor(
             coordinator,
             key="overall_average",
             name="Overall average",
@@ -205,7 +206,7 @@ async def async_setup_entry(
                     translation_key="punishments_period",
                     translation_placeholders=placeholders,
                 ),
-                PronotePeriodRelatedSensor(
+                PronoteOverallAverageSensor(
                     coordinator,
                     key=f"overall_average_{period_key}",
                     name=f"Overall average {period.name}",
@@ -289,7 +290,8 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         """Return the state of the sensor."""
         value = self.coordinator.data[self._coordinator_key]
         if value is None:
-            return "unavailable"
+            # a sensor with a numeric state_class can't carry the "unavailable" string
+            return None if self._attr_state_class else "unavailable"
         # Computed from the current data, _state was set once at setup
         if isinstance(value, (list, tuple, dict)):
             return len(value)
@@ -356,6 +358,10 @@ class PronotePeriodRelatedSensor(PronoteGenericSensor):
         attributes["is_current_period"] = period_key == current_period_key
 
         return attributes
+
+
+class PronoteOverallAverageSensor(PronotePeriodRelatedSensor):
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
 
 class PronoteClassSensor(PronoteGenericSensor):
