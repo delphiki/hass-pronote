@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -12,10 +13,17 @@ import voluptuous as vol
 from datetime import time
 
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.file_upload import process_uploaded_file
 from homeassistant.helpers.redact import async_redact_data
+from homeassistant.helpers.selector import (
+    FileSelector,
+    FileSelectorConfig,
+    SelectSelector,
+    SelectSelectorConfig,
+)
 
 ### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -83,11 +91,30 @@ def get_ent_list() -> dict[str]:
 
 STEP_USER_CONNECTION_TYPE = vol.Schema(
     {
-        vol.Required("connection_type"): vol.In(
-            {"username_password": "Username and password", "qrcode": "QRCode"}
+        vol.Required("connection_type"): SelectSelector(
+            SelectSelectorConfig(
+                options=["username_password", "qrcode"],
+                translation_key="connection_type",
+            )
         ),
-        vol.Required("account_type"): vol.In({"eleve": "Student", "parent": "Parent"}),
+        vol.Required("account_type"): SelectSelector(
+            SelectSelectorConfig(
+                options=["eleve", "parent"],
+                translation_key="account_type",
+            )
+        ),
     }
+)
+
+# Only needed when the school uses double authentication
+DOUBLE_AUTH_SECTION = section(
+    vol.Schema(
+        {
+            vol.Optional("device_name"): str,
+            vol.Optional("account_pin"): str,
+        }
+    ),
+    {"collapsed": True},
 )
 
 STEP_USER_DATA_SCHEMA_UP = vol.Schema(
@@ -96,19 +123,64 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
         vol.Required("username"): str,
         vol.Required("password"): str,
         vol.Optional("ent"): vol.In(get_ent_list()),
-        vol.Optional("device_name"): str,
-        vol.Optional("account_pin"): str,
+        vol.Optional("double_auth"): DOUBLE_AUTH_SECTION,
     }
 )
 
 STEP_USER_DATA_SCHEMA_QR = vol.Schema(
     {
-        vol.Required("qr_code_json"): str,
+        vol.Optional("qr_code_json"): str,
+        vol.Optional("qr_code_image"): FileSelector(
+            FileSelectorConfig(accept="image/*")
+        ),
         vol.Required("qr_code_pin"): str,
-        vol.Optional("device_name"): str,
-        vol.Optional("account_pin"): str,
+        vol.Optional("double_auth"): DOUBLE_AUTH_SECTION,
     }
 )
+
+
+def decode_qr_code_image(hass: HomeAssistant, file_id: str) -> str:
+    """Read the Pronote QR code JSON from an uploaded picture."""
+    try:
+        from PIL import Image
+        from pyzbar.pyzbar import decode
+    except (ImportError, OSError) as ex:
+        # pyzbar/zbar is shipped with HA's core qrcode integration
+        _LOGGER.info("Can't read the QR code picture: %s", ex)
+        raise InvalidQRCode from ex
+
+    try:
+        with process_uploaded_file(hass, file_id) as file_path:
+            with Image.open(file_path) as image:
+                codes = decode(image)
+    except (OSError, ValueError) as ex:
+        _LOGGER.info("Can't read the QR code picture: %s", ex)
+        raise InvalidQRCode from ex
+
+    for code in codes:
+        try:
+            qr_code = json.loads(code.data)
+        except ValueError:
+            continue
+        if isinstance(qr_code, dict) and "jeton" in qr_code:
+            return code.data.decode()
+    raise InvalidQRCode
+
+
+async def async_get_qr_code_json(hass: HomeAssistant, user_input: dict) -> None:
+    """Put the QR code JSON in user_input, from the picture if there is no JSON."""
+    file_id = user_input.pop("qr_code_image", None)
+    if file_id and not user_input.get("qr_code_json"):
+        user_input["qr_code_json"] = await hass.async_add_executor_job(
+            decode_qr_code_image, hass, file_id
+        )
+    if not user_input.get("qr_code_json"):
+        raise InvalidQRCode
+
+
+def flatten_double_auth(user_input: dict) -> None:
+    """Move device_name and account_pin out of their form section."""
+    user_input.update(user_input.pop("double_auth", None) or {})
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -146,6 +218,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.info("async_step_up: Connecting via user/password")
         errors: dict[str, str] = {}
         if user_input is not None:
+            flatten_double_auth(user_input)
             try:
                 _LOGGER.debug(
                     "User Input: %s", async_redact_data(user_input, TO_REDACT)
@@ -162,6 +235,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not (error := pronote_error(err)):
+                    raise
+                errors["base"] = error
             else:
                 self.pronote_client = client
 
@@ -187,12 +264,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.info("async_step_up: Connecting via qrcode")
         errors: dict[str, str] = {}
         if user_input is not None:
+            flatten_double_auth(user_input)
             try:
                 _LOGGER.debug(
                     "User Input: %s", async_redact_data(self._user_inputs, TO_REDACT)
                 )
                 user_input["account_type"] = self._user_inputs["account_type"]
                 user_input["qr_code_uuid"] = str(uuid.uuid4())
+                await async_get_qr_code_json(self.hass, user_input)
 
                 client = await self.hass.async_add_executor_job(
                     get_client_from_qr_code, user_input
@@ -200,13 +279,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if client is None:
                     raise InvalidAuth
+            except InvalidQRCode:
+                errors["base"] = "invalid_qr_code"
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not (error := pronote_error(err)):
+                    raise
+                errors["base"] = error
             else:
                 self._user_inputs["qr_code_url"] = client.pronote_url
                 self._user_inputs["qr_code_username"] = client.username
                 self._user_inputs["qr_code_password"] = client.password
                 self._user_inputs["qr_code_uuid"] = client.uuid
+                self._user_inputs["client_identifier"] = client.client_identifier
+                for key in ("account_pin", "device_name"):
+                    if user_input.get(key):
+                        self._user_inputs[key] = user_input[key]
 
                 self.pronote_client = client
 
@@ -291,8 +380,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            data = {**entry.data, **user_input}
+            flatten_double_auth(user_input)
             try:
+                if is_qr_code:
+                    await async_get_qr_code_json(self.hass, user_input)
+                data = {**entry.data, **user_input}
                 client = await self.hass.async_add_executor_job(
                     (
                         get_client_from_qr_code
@@ -303,8 +395,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 if client is None:
                     raise InvalidAuth
+            except InvalidQRCode:
+                errors["base"] = "invalid_qr_code"
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not (error := pronote_error(err)):
+                    raise
+                errors["base"] = error
             else:
                 updates = user_input
                 if is_qr_code:
@@ -315,6 +413,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "qr_code_password": client.password,
                         "qr_code_uuid": client.uuid,
                         "uuid": client.uuid,
+                        "client_identifier": client.client_identifier,
                     }
                     # we keep the 2FA answers, so the next token login won't ask for it
                     for key in ("account_pin", "device_name"):
@@ -330,7 +429,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=self.add_suggested_values_to_schema(
-                schema, {k: v for k, v in entry.data.items() if k != "password"}
+                schema,
+                {
+                    **{k: v for k, v in entry.data.items() if k != "password"},
+                    "double_auth": {
+                        k: entry.data[k]
+                        for k in ("device_name", "account_pin")
+                        if entry.data.get(k)
+                    },
+                },
             ),
             errors=errors,
             description_placeholders={"name": entry.title},
@@ -351,6 +458,10 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+
+class InvalidQRCode(HomeAssistantError):
+    """Error to indicate no Pronote QR code was found."""
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
