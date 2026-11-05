@@ -75,8 +75,6 @@ PRONOTE_ERRORS = {
 def pronote_error(err) -> str | None:
     if not isinstance(err, pronotepy.exceptions.PronoteAPIError):
         return None
-    if "IP address is suspended" in str(err):
-        return "ip_suspended"
     return PRONOTE_ERRORS.get(err.pronote_error_code)
 
 
