@@ -175,7 +175,7 @@
             "active_periods": { "name": "Active periods" }
         },
         "calendar": {
-            "timetable": { "name": "{child}'s timetable" }
+            "timetable": { "name": "Timetable" }
         }
     }
 }
