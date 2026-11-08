@@ -114,12 +114,13 @@ class PronoteCalendar(CoordinatorEntity, CalendarEntity):
         end_date: datetime,
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
+        tz = ZoneInfo(hass.config.time_zone)
+        start = start_date.astimezone(tz).replace(tzinfo=None)
+        end = end_date.astimezone(tz).replace(tzinfo=None)
         return [
             async_get_calendar_event_from_lessons(
                 event, hass.config.time_zone, self.unique_id
             )
-            for event in filter(
-                lambda lesson: lesson.canceled == False,
-                self.coordinator.data["lessons_period"],
-            )
+            for event in self.coordinator.data["lessons_period"] or []
+            if event.canceled == False and event.start < end and event.end > start
         ]
