@@ -56,6 +56,17 @@ AUTH_ERRORS = (
 )
 
 
+class PronoteParentClient(pronotepy.ParentClient):
+    # pronotepy raises KeyError('dataSec') instead of logged_in=False
+    def __init__(self, *args, **kwargs):
+        try:
+            super().__init__(*args, **kwargs)
+        except KeyError:
+            if not getattr(self, "logged_in", True):
+                raise AuthenticationFailed("parent login rejected") from None
+            raise
+
+
 def get_pronote_server_version(client) -> str:
     """Return the PRONOTE version of the instance, e.g. "2026.2.5.7".
 
@@ -113,7 +124,7 @@ def get_client_from_username_password(
 
     try:
         client = (
-            pronotepy.ParentClient
+            PronoteParentClient
             if data["account_type"] == "parent"
             else pronotepy.Client
         )(
@@ -150,7 +161,7 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
 
         # get the initial client using qr_code
         client = (
-            pronotepy.ParentClient
+            PronoteParentClient
             if data["account_type"] == "parent"
             else pronotepy.Client
         ).qrcode_login(
@@ -181,7 +192,7 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
     _LOGGER.info("Coordinator uses qr_code_username: %s", qr_code_username)
 
     client = (
-        pronotepy.ParentClient if data["account_type"] == "parent" else pronotepy.Client
+        PronoteParentClient if data["account_type"] == "parent" else pronotepy.Client
     ).token_login(
         pronote_url=qr_code_url,
         username=qr_code_username,
