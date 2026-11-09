@@ -379,7 +379,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         default=config_entry.options.get(
                             "refresh_interval", DEFAULT_REFRESH_INTERVAL
                         ),
-                    ): int,
+                    ): vol.All(int, vol.Range(min=1)),
                     vol.Optional(
                         "lunch_break_time",
                         default=config_entry.options.get(
