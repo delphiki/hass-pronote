@@ -10,7 +10,6 @@
             "cannot_connect": "Failed to connect",
             "invalid_auth": "Invalid authentication",
             "ip_blocked": "Pronote temporarily blocked this IP address after too many attempts: try again in a few hours",
-            "ip_suspended": "Pronote returned an unexpected page: the IP may be blocked after too many attempts (try again in a few hours), or the ENT login changed",
             "maintenance": "Pronote is under maintenance (work in progress on the database): try again later",
             "pronote_error": "Pronote returned a technical error: try again later",
             "proxy_refused": "Pronote refuses connections from a public proxy, turn off the VPN or proxy",
@@ -44,7 +43,7 @@
                         }
                     }
                 },
-                "description": "Paste the QR code JSON, or send a picture of it"
+                "description": "Paste the QR code JSON"
             },
             "reauth_confirm": {
                 "title": "Re-authenticate",

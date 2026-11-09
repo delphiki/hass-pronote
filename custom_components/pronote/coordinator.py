@@ -228,7 +228,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             if not (error := pronote_error(err)):
                 raise
             if error == "account_locked":
-                self.update_interval = ACCOUNT_LOCKED_BACKOFF
+                self.update_interval = max(self.update_interval, ACCOUNT_LOCKED_BACKOFF)
             client = None
         except Exception:
             self.data = previous_data
