@@ -7,7 +7,8 @@
         "error": {
             "cannot_connect": "Impossible de se connecter",
             "invalid_auth": "Erreur d'authentification",
-            "unknown": "Une erreur est survenue"
+            "unknown": "Une erreur est survenue",
+            "https_required": "Le scan nécessite d'accéder à Home Assistant en HTTPS. Sinon, utilisez l'option QR code et collez le contenu JSON."
         },
         "step": {
             "parent": {
@@ -37,6 +38,56 @@
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
                 },
                 "description": "JSON du QR Code"
+            },
+            "qr_scan": {
+                "title": "Scanner le QR code",
+                "description": "[Ouvrir la page de scan]({url}), autorisez la caméra et visez le QR code affiché par Pronote."
+            },
+            "qr_scan_pin": {
+                "title": "PIN du QR code",
+                "description": "QR code lu. Saisissez le PIN choisi en créant le QR code.",
+                "data": {
+                    "qr_code_pin": "PIN utilisé en créant le QR Code",
+                    "device_name": "Nom de l'appareil",
+                    "account_pin": "PIN du compte"
+                }
+            },
+            "qr_scan_failed": {
+                "title": "Connexion refusée",
+                "description": "Pronote a refusé la connexion : le PIN est faux ou le QR code a expiré (il n'est valable que quelques minutes).",
+                "menu_options": {
+                    "qr_scan_pin": "Ressaisir le PIN",
+                    "qr_scan": "Scanner un nouveau QR code"
+                }
+            },
+            "reauth_menu": {
+                "title": "Réauthentification",
+                "description": "Les identifiants Pronote de {name} ne sont plus valides. Comment voulez-vous fournir le nouveau QR code ?",
+                "menu_options": {
+                    "reauth_confirm": "Coller le JSON du QR code",
+                    "reauth_scan": "Expérimental : scanner le QR code depuis votre téléphone"
+                }
+            },
+            "reauth_scan": {
+                "title": "Scanner le nouveau QR code",
+                "description": "[Ouvrir la page de scan]({url}), autorisez la caméra et visez le nouveau QR code affiché par Pronote."
+            },
+            "reauth_scan_pin": {
+                "title": "PIN du QR code",
+                "description": "QR code lu. Saisissez le PIN choisi en créant le QR code.",
+                "data": {
+                    "qr_code_pin": "PIN utilisé en créant le QR Code",
+                    "device_name": "Nom de l'appareil",
+                    "account_pin": "PIN du compte"
+                }
+            },
+            "reauth_scan_failed": {
+                "title": "Connexion refusée",
+                "description": "Pronote a refusé la connexion : le PIN est faux ou le QR code a expiré (il n'est valable que quelques minutes).",
+                "menu_options": {
+                    "reauth_scan_pin": "Ressaisir le PIN",
+                    "reauth_scan": "Scanner un nouveau QR code"
+                }
             },
             "reauth_confirm": {
                 "title": "Réauthentification",
