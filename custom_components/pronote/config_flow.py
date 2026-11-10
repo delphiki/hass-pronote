@@ -50,6 +50,7 @@ from .pronote_helper import *
 
 from pronotepy.ent import *
 
+from .qr_scan import async_scan_url, async_setup_scan
 from .const import (
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
@@ -84,7 +85,11 @@ def get_ent_list() -> dict[str]:
 STEP_USER_CONNECTION_TYPE = vol.Schema(
     {
         vol.Required("connection_type"): vol.In(
-            {"username_password": "Username and password", "qrcode": "QRCode"}
+            {
+                "username_password": "Username and password",
+                "qrcode": "QRCode",
+                "qrcode_scan": "Experimental: scan QR code from your phone",
+            }
         ),
         vol.Required("account_type"): vol.In({"eleve": "Student", "parent": "Parent"}),
     }
@@ -110,6 +115,15 @@ STEP_USER_DATA_SCHEMA_QR = vol.Schema(
     }
 )
 
+# after a camera scan, the QR code JSON is already known
+STEP_QR_PIN_SCHEMA = vol.Schema(
+    {
+        vol.Required("qr_code_pin"): str,
+        vol.Optional("device_name"): str,
+        vol.Optional("account_pin"): str,
+    }
+)
+
 
 @config_entries.HANDLERS.register(DOMAIN)
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -120,6 +134,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._user_inputs: dict = {}
+        self._scanned_qr: str | None = None
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle a flow initialized by the user."""
@@ -136,8 +151,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input["connection_type"] == "username_password":
             return await self.async_step_username_password_login()
-        else:
-            return await self.async_step_qr_code_login()
+        if user_input["connection_type"] == "qrcode_scan":
+            # a scanned QR code account is a QR code account
+            self._user_inputs["connection_type"] = "qrcode"
+            return await self.async_step_qr_scan()
+        return await self.async_step_qr_code_login()
 
     async def async_step_username_password_login(
         self, user_input: dict | None = None
@@ -187,36 +205,69 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.info("async_step_up: Connecting via qrcode")
         errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                _LOGGER.debug(
-                    "User Input: %s", async_redact_data(self._user_inputs, TO_REDACT)
-                )
-                user_input["account_type"] = self._user_inputs["account_type"]
-                user_input["qr_code_uuid"] = str(uuid.uuid4())
-
-                client = await self.hass.async_add_executor_job(
-                    get_client_from_qr_code, user_input
-                )
-
-                if client is None:
-                    raise InvalidAuth
-            except (InvalidAuth, *AUTH_ERRORS):
-                errors["base"] = "invalid_auth"
-            else:
-                self._user_inputs["qr_code_url"] = client.pronote_url
-                self._user_inputs["qr_code_username"] = client.username
-                self._user_inputs["qr_code_password"] = client.password
-                self._user_inputs["qr_code_uuid"] = client.uuid
-
-                self.pronote_client = client
-
-                if self._user_inputs["account_type"] == "parent":
-                    return await self.async_step_parent()
-
-                return await self.async_step_nickname()
+            if (error := await self._async_login_with_qr(user_input)) is None:
+                return await self._async_qr_logged_in()
+            errors["base"] = error
 
         return self.async_show_form(
             step_id="qr_code_login", data_schema=STEP_USER_DATA_SCHEMA_QR, errors=errors
+        )
+
+    async def _async_login_with_qr(self, user_input: dict) -> str | None:
+        """Log in with a QR code, return the error key or None."""
+        _LOGGER.debug("User Input: %s", async_redact_data(self._user_inputs, TO_REDACT))
+        user_input["account_type"] = self._user_inputs["account_type"]
+        user_input["qr_code_uuid"] = str(uuid.uuid4())
+        try:
+            client = await self.hass.async_add_executor_job(
+                get_client_from_qr_code, user_input
+            )
+        except AUTH_ERRORS:
+            client = None
+        if client is None:
+            return "invalid_auth"
+
+        self._user_inputs["qr_code_url"] = client.pronote_url
+        self._user_inputs["qr_code_username"] = client.username
+        self._user_inputs["qr_code_password"] = client.password
+        self._user_inputs["qr_code_uuid"] = client.uuid
+        self.pronote_client = client
+        return None
+
+    async def _async_qr_logged_in(self) -> FlowResult:
+        if self._user_inputs["account_type"] == "parent":
+            return await self.async_step_parent()
+        return await self.async_step_nickname()
+
+    async def async_step_qr_scan(self, user_input: dict | None = None) -> FlowResult:
+        """Scan the QR code with the phone camera (external step)."""
+        if user_input is None:
+            await async_setup_scan(self.hass)
+            if (url := async_scan_url(self.hass, self.flow_id)) is None:
+                return self.async_show_form(
+                    step_id="qr_code_login",
+                    data_schema=STEP_USER_DATA_SCHEMA_QR,
+                    errors={"base": "https_required"},
+                )
+            return self.async_external_step(
+                step_id="qr_scan", url=url, description_placeholders={"url": url}
+            )
+        self._scanned_qr = user_input["qr_code_json"]
+        return self.async_external_step_done(next_step_id="qr_scan_pin")
+
+    async def async_step_qr_scan_pin(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
+        """Ask the PIN of the scanned QR code, then log in."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            qr_input = {**user_input, "qr_code_json": self._scanned_qr}
+            if (error := await self._async_login_with_qr(qr_input)) is None:
+                return await self._async_qr_logged_in()
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="qr_scan_pin", data_schema=STEP_QR_PIN_SCHEMA, errors=errors
         )
 
     async def async_step_parent(self, user_input=None) -> FlowResult:
@@ -280,7 +331,91 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Handle re-authentication when Pronote rejects credentials."""
+        if entry_data["connection_type"] == "qrcode":
+            return await self.async_step_reauth_menu()
         return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_menu(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
+        """Paste the new QR code JSON or scan it."""
+        return self.async_show_menu(
+            step_id="reauth_menu",
+            menu_options=["reauth_confirm", "reauth_scan"],
+            description_placeholders={"name": self._get_reauth_entry().title},
+        )
+
+    def _async_show_reauth_confirm(
+        self, entry: config_entries.ConfigEntry, errors: dict[str, str]
+    ) -> FlowResult:
+        is_qr_code = entry.data["connection_type"] == "qrcode"
+        schema = STEP_USER_DATA_SCHEMA_QR if is_qr_code else STEP_USER_DATA_SCHEMA_UP
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=self.add_suggested_values_to_schema(
+                schema, {k: v for k, v in entry.data.items() if k != "password"}
+            ),
+            errors=errors,
+            description_placeholders={"name": entry.title},
+        )
+
+    def _async_finish_qr_reauth(
+        self, entry: config_entries.ConfigEntry, client, user_input: dict
+    ) -> FlowResult:
+        # don't keep the QR code, only the result
+        updates = {
+            "qr_code_url": client.pronote_url,
+            "qr_code_username": client.username,
+            "qr_code_password": client.password,
+            "qr_code_uuid": client.uuid,
+            "uuid": client.uuid,
+        }
+        # we keep the 2FA answers, so the next token login won't ask for it
+        for key in ("account_pin", "device_name"):
+            if user_input.get(key):
+                updates[key] = user_input[key]
+        self.hass.config_entries.async_update_entry(entry, data={**entry.data, **updates})
+        self.hass.config_entries.async_schedule_reload(entry.entry_id)
+        return self.async_abort(reason="reauth_successful")
+
+    async def async_step_reauth_scan(self, user_input: dict | None = None) -> FlowResult:
+        """Scan the new QR code with the phone camera (external step)."""
+        if user_input is None:
+            await async_setup_scan(self.hass)
+            if (url := async_scan_url(self.hass, self.flow_id)) is None:
+                return self._async_show_reauth_confirm(
+                    self._get_reauth_entry(), {"base": "https_required"}
+                )
+            return self.async_external_step(
+                step_id="reauth_scan", url=url, description_placeholders={"url": url}
+            )
+        self._scanned_qr = user_input["qr_code_json"]
+        return self.async_external_step_done(next_step_id="reauth_scan_pin")
+
+    async def async_step_reauth_scan_pin(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
+        """Ask the PIN of the scanned QR code, then log in again."""
+        entry = self._get_reauth_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data = {**entry.data, **user_input, "qr_code_json": self._scanned_qr}
+            try:
+                client = await self.hass.async_add_executor_job(
+                    get_client_from_qr_code, data
+                )
+            except AUTH_ERRORS:
+                client = None
+            if client is not None:
+                return self._async_finish_qr_reauth(entry, client, user_input)
+            errors["base"] = "invalid_auth"
+
+        return self.async_show_form(
+            step_id="reauth_scan_pin",
+            data_schema=STEP_QR_PIN_SCHEMA,
+            errors=errors,
+            description_placeholders={"name": entry.title},
+        )
 
     async def async_step_reauth_confirm(
         self, user_input: dict | None = None
@@ -306,35 +441,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except (InvalidAuth, *AUTH_ERRORS):
                 errors["base"] = "invalid_auth"
             else:
-                updates = user_input
                 if is_qr_code:
-                    # don't keep the QR code, only the result
-                    updates = {
-                        "qr_code_url": client.pronote_url,
-                        "qr_code_username": client.username,
-                        "qr_code_password": client.password,
-                        "qr_code_uuid": client.uuid,
-                        "uuid": client.uuid,
-                    }
-                    # we keep the 2FA answers, so the next token login won't ask for it
-                    for key in ("account_pin", "device_name"):
-                        if user_input.get(key):
-                            updates[key] = user_input[key]
+                    return self._async_finish_qr_reauth(entry, client, user_input)
                 self.hass.config_entries.async_update_entry(
-                    entry, data={**entry.data, **updates}
+                    entry, data={**entry.data, **user_input}
                 )
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
 
-        schema = STEP_USER_DATA_SCHEMA_QR if is_qr_code else STEP_USER_DATA_SCHEMA_UP
-        return self.async_show_form(
-            step_id="reauth_confirm",
-            data_schema=self.add_suggested_values_to_schema(
-                schema, {k: v for k, v in entry.data.items() if k != "password"}
-            ),
-            errors=errors,
-            description_placeholders={"name": entry.title},
-        )
+        return self._async_show_reauth_confirm(entry, errors)
 
     @staticmethod
     @callback
