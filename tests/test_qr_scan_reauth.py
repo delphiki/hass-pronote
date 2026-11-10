@@ -86,16 +86,23 @@ async def test_qr_reauth_by_scan(hass: HomeAssistant, https_ha, hass_client_no_a
     assert hass.config_entries.async_entries("pronote") == [entry]
 
 
-async def test_qr_reauth_scan_wrong_pin(
+async def test_qr_reauth_scan_refused(
     hass: HomeAssistant, https_ha, hass_client_no_auth
 ) -> None:
+    """Wrong PIN or expired QR code: retype the PIN or scan again."""
     entry = _entry(hass, QR_DATA)
     with patch(QR_LOGIN, return_value=None):
         result = await _scan_then_pin(hass, hass_client_no_auth, entry, {"qr_code_pin": "0000"})
-    assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "reauth_scan_pin"
-    assert result["errors"] == {"base": "invalid_auth"}
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "reauth_scan_failed"
+    assert list(result["menu_options"]) == ["reauth_scan_pin", "reauth_scan"]
     assert dict(entry.data) == QR_DATA
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "reauth_scan"}
+    )
+    assert result["type"] is FlowResultType.EXTERNAL_STEP
+    assert result["step_id"] == "reauth_scan"
 
 
 async def test_qr_reauth_scan_without_https(hass: HomeAssistant, http_only_ha) -> None:

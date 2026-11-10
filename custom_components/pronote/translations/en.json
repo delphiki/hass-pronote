@@ -36,6 +36,14 @@
                     "account_pin": "Account PIN"
                 }
             },
+            "qr_scan_failed": {
+                "title": "Connection refused",
+                "description": "Pronote refused the connection: the PIN is wrong or the QR code has expired (it is only valid for a few minutes).",
+                "menu_options": {
+                    "qr_scan_pin": "Retype the PIN",
+                    "qr_scan": "Scan a new QR code"
+                }
+            },
             "reauth_menu": {
                 "title": "Re-authentication",
                 "description": "Pronote credentials for {name} are no longer valid. How do you want to give the new QR code?",
@@ -55,6 +63,14 @@
                     "qr_code_pin": "PIN used when creating the QR code",
                     "device_name": "Device name",
                     "account_pin": "Account PIN"
+                }
+            },
+            "reauth_scan_failed": {
+                "title": "Connection refused",
+                "description": "Pronote refused the connection: the PIN is wrong or the QR code has expired (it is only valid for a few minutes).",
+                "menu_options": {
+                    "reauth_scan_pin": "Retype the PIN",
+                    "reauth_scan": "Scan a new QR code"
                 }
             },
             "reauth_confirm": {

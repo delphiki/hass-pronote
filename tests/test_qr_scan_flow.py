@@ -82,17 +82,53 @@ async def test_scan_full_flow_parent(
     assert calls[0]["account_type"] == "parent"
 
 
-async def test_scan_wrong_pin(hass: HomeAssistant, https_ha, hass_client_no_auth) -> None:
+async def _refused_login(hass, hass_client_no_auth):
     result = await _start(hass)
     result = await _scan(hass, await hass_client_no_auth(), result)
     with patch(LOGIN, return_value=None):
-        result = await hass.config_entries.flow.async_configure(
+        return await hass.config_entries.flow.async_configure(
             result["flow_id"], {"qr_code_pin": "0000"}
         )
+
+
+async def test_scan_refused_offers_retry(
+    hass: HomeAssistant, https_ha, hass_client_no_auth
+) -> None:
+    """Wrong PIN or expired QR code: retype the PIN or scan again."""
+    result = await _refused_login(hass, hass_client_no_auth)
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "qr_scan_failed"
+    assert list(result["menu_options"]) == ["qr_scan_pin", "qr_scan"]
+    assert hass.config_entries.async_entries("pronote") == []
+
+
+async def test_scan_refused_retype_pin(
+    hass: HomeAssistant, https_ha, hass_client_no_auth
+) -> None:
+    result = await _refused_login(hass, hass_client_no_auth)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "qr_scan_pin"}
+    )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "qr_scan_pin"
-    assert result["errors"] == {"base": "invalid_auth"}
-    assert hass.config_entries.async_entries("pronote") == []
+    with patch(LOGIN, return_value=qr_client()):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"qr_code_pin": "1234"}
+        )
+    assert result["step_id"] == "parent"
+
+
+async def test_scan_refused_scan_again(
+    hass: HomeAssistant, https_ha, hass_client_no_auth
+) -> None:
+    result = await _refused_login(hass, hass_client_no_auth)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "qr_scan"}
+    )
+    assert result["type"] is FlowResultType.EXTERNAL_STEP
+    assert result["step_id"] == "qr_scan"
+    result = await _scan(hass, await hass_client_no_auth(), result)
+    assert result["step_id"] == "qr_scan_pin"
 
 
 async def test_scan_without_https(hass: HomeAssistant, http_only_ha) -> None:
