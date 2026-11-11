@@ -18,18 +18,30 @@
             },
             "user": {
                 "data": {
-                    "connection_type": "Type de connection"
+                    "account_type": "Type de compte",
+                    "connection_type": "Type de connexion"
                 }
             },
             "username_password_login": {
                 "data": {
-                    "account_type": "Type de compte",
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
-                    "username": "Identifiant",
-                    "device_name": "Nom de l'appareil",
-                    "account_pin": "PIN du compte"
+                    "username": "Identifiant"
+                },
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
                 }
             },
             "qr_code_login": {
@@ -37,7 +49,21 @@
                     "qr_code_json": "JSON du QR Code",
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
                 },
-                "description": "JSON du QR Code"
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
+                },
+                "description": "Collez le JSON du QR code"
             },
             "qr_scan": {
                 "title": "Scanner le QR code",
@@ -47,9 +73,21 @@
                 "title": "PIN du QR code",
                 "description": "QR code lu. Saisissez le PIN choisi en créant le QR code.",
                 "data": {
-                    "qr_code_pin": "PIN utilisé en créant le QR Code",
-                    "device_name": "Nom de l'appareil",
-                    "account_pin": "PIN du compte"
+                    "qr_code_pin": "PIN utilisé en créant le QR Code"
+                },
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
                 }
             },
             "qr_scan_failed": {
@@ -76,9 +114,21 @@
                 "title": "PIN du QR code",
                 "description": "QR code lu. Saisissez le PIN choisi en créant le QR code.",
                 "data": {
-                    "qr_code_pin": "PIN utilisé en créant le QR Code",
-                    "device_name": "Nom de l'appareil",
-                    "account_pin": "PIN du compte"
+                    "qr_code_pin": "PIN utilisé en créant le QR Code"
+                },
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
                 }
             },
             "reauth_scan_failed": {
@@ -97,11 +147,38 @@
                     "username": "Identifiant",
                     "password": "Mot de passe",
                     "ent": "ENT",
-                    "device_name": "Nom de l'appareil",
-                    "account_pin": "PIN du compte",
                     "qr_code_json": "JSON du QR Code",
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
+                },
+                "sections": {
+                    "double_auth": {
+                        "name": "Double authentification",
+                        "description": "Utile uniquement si l'établissement a activé la double authentification (Pronote demande un code PIN quand vous vous connectez depuis un nouvel appareil). Sinon, laissez vide.",
+                        "data": {
+                            "device_name": "Nom de l'appareil",
+                            "account_pin": "PIN du compte"
+                        },
+                        "data_description": {
+                            "device_name": "Nom sous lequel Home Assistant apparaîtra dans vos appareils de confiance Pronote",
+                            "account_pin": "Le code PIN que Pronote demande sur un nouvel appareil"
+                        }
+                    }
                 }
+            }
+        }
+    },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "username_password": "Identifiant et mot de passe",
+                "qrcode": "QR code",
+                "qrcode_scan": "Expérimental : scanner le QR code depuis votre téléphone"
+            }
+        },
+        "account_type": {
+            "options": {
+                "eleve": "Élève",
+                "parent": "Parent"
             }
         }
     },
