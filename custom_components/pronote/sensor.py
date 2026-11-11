@@ -291,7 +291,7 @@ class PronoteGenericSensor(CoordinatorEntity, SensorEntity):
         value = self.coordinator.data[self._coordinator_key]
         if value is None:
             # a sensor with a numeric state_class can't carry the "unavailable" string
-            return None if self._attr_state_class else "unavailable"
+            return None if self.state_class else "unavailable"
         # Computed from the current data, _state was set once at setup
         if isinstance(value, (list, tuple, dict)):
             return len(value)
