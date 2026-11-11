@@ -16,6 +16,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
 from homeassistant.helpers.redact import async_redact_data
+from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 
 ### Hotfix for python 3.13/3.14 https://github.com/bain3/pronotepy/pull/317#issuecomment-2523257656
 import autoslot
@@ -84,14 +85,15 @@ def get_ent_list() -> dict[str]:
 
 STEP_USER_CONNECTION_TYPE = vol.Schema(
     {
-        vol.Required("connection_type"): vol.In(
-            {
-                "username_password": "Username and password",
-                "qrcode": "QRCode",
-                "qrcode_scan": "Experimental: scan QR code from your phone",
-            }
+        vol.Required("connection_type"): SelectSelector(
+            SelectSelectorConfig(
+                options=["username_password", "qrcode", "qrcode_scan"],
+                translation_key="connection_type",
+            )
         ),
-        vol.Required("account_type"): vol.In({"eleve": "Student", "parent": "Parent"}),
+        vol.Required("account_type"): SelectSelector(
+            SelectSelectorConfig(options=["eleve", "parent"], translation_key="account_type")
+        ),
     }
 )
 

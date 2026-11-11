@@ -18,12 +18,12 @@
             },
             "user": {
                 "data": {
-                    "connection_type": "Type de connection"
+                    "account_type": "Type de compte",
+                    "connection_type": "Type de connexion"
                 }
             },
             "username_password_login": {
                 "data": {
-                    "account_type": "Type de compte",
                     "ent": "ENT",
                     "password": "Mot de passe",
                     "url": "URL",
@@ -37,7 +37,7 @@
                     "qr_code_json": "JSON du QR Code",
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
                 },
-                "description": "JSON du QR Code"
+                "description": "Collez le JSON du QR code"
             },
             "qr_scan": {
                 "title": "Scanner le QR code",
@@ -102,6 +102,21 @@
                     "qr_code_json": "JSON du QR Code",
                     "qr_code_pin": "PIN utilisé en créant le QR Code"
                 }
+            }
+        }
+    },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "username_password": "Identifiant et mot de passe",
+                "qrcode": "QR code",
+                "qrcode_scan": "Expérimental : scanner le QR code depuis votre téléphone"
+            }
+        },
+        "account_type": {
+            "options": {
+                "eleve": "Élève",
+                "parent": "Parent"
             }
         }
     },
