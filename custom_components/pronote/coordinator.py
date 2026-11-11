@@ -204,10 +204,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "pronote_version": None,
         }
 
+        # HA cancels async_add_executor_job futures at stop
+        login = self.hass.loop.run_in_executor(None, get_pronote_client, config_data)
         try:
-            client = await self.hass.async_add_executor_job(
-                get_pronote_client, config_data
-            )
+            client = await asyncio.shield(login)
+        except asyncio.CancelledError:
+            self.hass.async_create_task(self._release_late_login(login))
+            raise
         except AUTH_ERRORS as err:
             # Stop polling and ask the user for new auth
             self.data = previous_data
@@ -228,19 +231,30 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data = previous_data
             raise
         finally:
-            # A refresh() during the update rotates the token again
-            try:
-                await self._save_credentials(client)
-            except Exception as ex:
-                _LOGGER.warning("Error saving pronote credentials: %s", ex)
-            try:
-                await self.hass.async_add_executor_job(client.communication.session.close)
-            except Exception:
-                pass
-            # shared across children: only drop this client's periods (incl. ones replaced by a refresh())
-            PronotePeriod.instances.difference_update(
-                [p for p in list(PronotePeriod.instances) if p._client is client]
-            )
+            await self._release_client(client)
+
+    async def _release_late_login(self, login):
+        try:
+            client = await login
+        except Exception:
+            return
+        if client is not None:
+            await self._release_client(client)
+
+    async def _release_client(self, client):
+        # A refresh() during the update rotates the token again
+        try:
+            await self._save_credentials(client)
+        except Exception as ex:
+            _LOGGER.warning("Error saving pronote credentials: %s", ex)
+        try:
+            await self.hass.async_add_executor_job(client.communication.session.close)
+        except Exception:
+            pass
+        # shared across children: only drop this client's periods (incl. ones replaced by a refresh())
+        PronotePeriod.instances.difference_update(
+            [p for p in list(PronotePeriod.instances) if p._client is client]
+        )
 
     async def _save_credentials(self, client):
         new_creds = await self.hass.async_add_executor_job(client.export_credentials)
