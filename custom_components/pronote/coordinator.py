@@ -239,7 +239,12 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 pass
             # shared across children: only drop this client's periods (incl. ones replaced by a refresh())
             PronotePeriod.instances.difference_update(
-                [p for p in list(PronotePeriod.instances) if p._client is client]
+                [
+                    p
+                    for p in list(PronotePeriod.instances)
+                    # _strip_client_refs already cut the ones reached through the grades
+                    if p._client is client or p._client is None
+                ]
             )
 
     async def _save_credentials(self, client):
