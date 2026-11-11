@@ -53,7 +53,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    if not coordinator.last_update_success:
+    def _has_entities() -> bool:
+        # sensor.py creates none without data or outside of any period (holidays)
+        return (
+            coordinator.last_update_success
+            and coordinator.data.get("current_period") is not None
+        )
+
+    if not _has_entities():
         unsub = None
 
         @callback
@@ -65,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         @callback
         def _reload_on_recovery() -> None:
-            if coordinator.last_update_success:
+            if _has_entities():
                 _stop_listening()
                 hass.async_create_task(
                     hass.config_entries.async_reload(entry.entry_id)
