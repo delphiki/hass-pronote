@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pronote - QR code</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #111; color: #eee; text-align: center; }
+  video { width: 100%; max-width: 480px; border-radius: 12px; background: #000; }
+  #status { margin: 16px 0; font-size: 1.1em; }
+  .ok { color: #7ddc7d; } .err { color: #ff8a80; }
+  .logos { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 8px 0 16px; }
+  .logos img { width: 56px; height: 56px; border-radius: 12px; }
+  .logos span { font-size: 1.5em; color: #888; }
+  #handoff p { max-width: 420px; margin: 16px auto; line-height: 1.4; }
+  #qr { display: inline-block; background: #fff; padding: 8px; border-radius: 12px; line-height: 0; }
+  #qr svg { width: 240px; height: 240px; }
+  #handoff a { color: #8ab4f8; }
+</style>
+</head>
+<body>
+<div class="logos">
+  <img src="__STATIC_URL__/pronote.png" alt="Pronote">
+  <span>→</span>
+  <img src="/static/icons/favicon-192x192.png" alt="Home Assistant">
+</div>
+<div id="handoff" hidden>
+  <p>Scannez ce QR code avec votre téléphone pour ouvrir la page de scan.<br><small>Scan this QR code with your phone to open the scan page.</small></p>
+  <div id="qr"></div>
+  <p><a href="#" id="use-here">Utiliser la caméra de cet appareil</a><br><small>Use this device's camera</small></p>
+</div>
+<video id="video" playsinline muted hidden></video>
+<div id="status"></div>
+<canvas id="canvas" hidden></canvas>
+<script>
+const JSQR_URL = "__STATIC_URL__/jsQR.js";
+const QRCODE_URL = "__STATIC_URL__/qrcode.js";
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const status = document.getElementById("status");
+const say = (fr, en, cls) => { status.innerHTML = fr + "<br><small>" + en + "</small>"; status.className = cls || ""; };
+let decode;
+let nativeDecoder = false;
+let done = false;
+
+async function setupDecoder() {
+  // BarcodeDetector may exist without QR support (e.g. Android without Google Play services)
+  try {
+    if ("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("qr_code")) {
+      const detector = new BarcodeDetector({ formats: ["qr_code"] });
+      decode = async () => (await detector.detect(video))[0]?.rawValue;
+      nativeDecoder = true;
+      return;
+    }
+  } catch (e) {
+    // fall back on jsQR
+  }
+  await useJsQr();
+}
+
+const loadScript = (src) => new Promise((resolve, reject) => {
+  const script = document.createElement("script");
+  script.src = src;
+  script.onload = resolve;
+  script.onerror = () => reject(new Error(src.split("/").pop()));
+  document.head.appendChild(script);
+});
+
+async function useJsQr() {
+  nativeDecoder = false;
+  await loadScript(JSQR_URL);
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  decode = async () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    return jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height)?.data;
+  };
+}
+
+const isPronoteQr = (text) => { try { const qr = JSON.parse(text); return !!(qr && qr.jeton && qr.url); } catch { return false; } };
+
+async function send(text) {
+  done = true;
+  say("Envoi à Home Assistant…", "Sending to Home Assistant…");
+  let resp;
+  try {
+    resp = await fetch(location.pathname, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ qr: text }) });
+  } catch (e) {
+    // network hiccup: keep the camera on and scan again
+    done = false;
+    say("Erreur réseau, visez à nouveau le QR code.", "Network error, aim at the QR code again.", "err");
+    return;
+  }
+  video.srcObject.getTracks().forEach((track) => track.stop());
+  if (resp.ok) {
+    say("✅ QR code transmis. Vous pouvez fermer cet onglet et revenir à Home Assistant.", "✅ QR code sent. You can close this tab and go back to Home Assistant.", "ok");
+  } else if (resp.status === 404) {
+    say("Cette demande a expiré, relancez l'ajout dans Home Assistant.", "This request has expired, start again from Home Assistant.", "err");
+  } else {
+    say("Erreur " + resp.status, "Error " + resp.status, "err");
+  }
+}
+
+async function tick() {
+  if (done) return;
+  try {
+    const text = video.readyState >= 2 ? await decode() : null;
+    if (text) {
+      if (isPronoteQr(text)) {
+        await send(text);
+        if (done) return;
+      } else {
+        say("Ce n'est pas un QR code Pronote.", "This is not a Pronote QR code.", "err");
+      }
+    }
+  } catch (e) {
+    if (nativeDecoder) {
+      // the native detector failed: switch to jsQR once
+      try { await useJsQr(); } catch (e2) { say("Erreur de lecture : " + e2.message, "Read error: " + e2.message, "err"); return; }
+    } else {
+      say("Erreur de lecture : " + e.message, "Read error: " + e.message, "err");
+    }
+  }
+  setTimeout(tick, 250);
+}
+
+async function startCamera() {
+  video.hidden = false;
+  if (!window.isSecureContext || !navigator.mediaDevices) {
+    return say("Le scan nécessite d'accéder à Home Assistant en HTTPS.", "Scanning needs Home Assistant to be accessed over HTTPS.", "err");
+  }
+  try {
+    await setupDecoder();
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    await video.play();
+    say("Visez le QR code affiché par Pronote.", "Aim at the QR code shown by Pronote.");
+    tick();
+  } catch (e) {
+    say("Impossible d'ouvrir la caméra : " + e.message, "Cannot open the camera: " + e.message, "err");
+  }
+}
+
+// touch screen + mobile browser (iPadOS reports itself as a Mac with touch points)
+function isPhone() {
+  const ua = navigator.userAgent;
+  const mobile = navigator.userAgentData?.mobile || /Android|iPhone|iPad|iPod|Mobile/i.test(ua)
+    || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  return mobile && matchMedia("(pointer: coarse)").matches;
+}
+
+// on a computer: show this page as a QR code for the phone, until the flow moves on
+async function showHandoff() {
+  const handoff = document.getElementById("handoff");
+  handoff.hidden = false;
+  try {
+    await loadScript(QRCODE_URL);
+    const qr = qrcode(0, "M");
+    qr.addData(location.href);
+    qr.make();
+    document.getElementById("qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  } catch (e) {
+    handoff.hidden = true;
+    return startCamera();
+  }
+  const poll = setInterval(async () => {
+    try {
+      if ((await fetch(location.pathname, { cache: "no-store" })).status !== 404) return;
+    } catch (e) {
+      return;
+    }
+    clearInterval(poll);
+    handoff.hidden = true;
+    say("✅ Étape terminée. Vous pouvez fermer cet onglet et revenir à Home Assistant.", "✅ Step done. You can close this tab and go back to Home Assistant.", "ok");
+  }, 3000);
+  document.getElementById("use-here").onclick = (event) => {
+    event.preventDefault();
+    clearInterval(poll);
+    handoff.hidden = true;
+    startCamera();
+  };
+}
+
+isPhone() ? startCamera() : showHandoff();
+</script>
+</body>
+</html>
