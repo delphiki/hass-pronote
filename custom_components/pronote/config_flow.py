@@ -135,6 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._user_inputs: dict = {}
         self._scanned_qr: str | None = None
+        self._login_error = "invalid_auth"
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle a flow initialized by the user."""
@@ -180,6 +181,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
+            except pronotepy.exceptions.PronoteAPIError as err:
+                if not (error := pronote_error(err)):
+                    raise
+                errors["base"] = error
             else:
                 self.pronote_client = client
 
@@ -207,7 +212,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if await self._async_login_with_qr(user_input):
                 return await self._async_qr_logged_in()
-            errors["base"] = "invalid_auth"
+            errors["base"] = self._login_error
 
         return self._async_show_qr_code_login(errors)
 
@@ -217,10 +222,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_get_client(self, login, data: dict):
-        """Log in to Pronote, None when the credentials are refused."""
+        """Log in to Pronote, None when it fails, with the reason in _login_error."""
+        self._login_error = "invalid_auth"
         try:
             return await self.hass.async_add_executor_job(login, data)
         except AUTH_ERRORS:
+            return None
+        except pronotepy.exceptions.PronoteAPIError as err:
+            if not (error := pronote_error(err)):
+                raise
+            self._login_error = error
             return None
 
     async def _async_login_with_qr(self, user_input: dict) -> bool:
@@ -272,6 +283,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id="qr_scan_pin", data_schema=STEP_QR_PIN_SCHEMA)
         if await self._async_login_with_qr({**user_input, "qr_code_json": self._scanned_qr}):
             return await self._async_qr_logged_in()
+        if self._login_error != "invalid_auth":
+            return self.async_show_form(
+                step_id="qr_scan_pin",
+                data_schema=STEP_QR_PIN_SCHEMA,
+                errors={"base": self._login_error},
+            )
         return await self.async_step_qr_scan_failed()
 
     async def async_step_qr_scan_failed(
@@ -406,6 +423,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         data = {**entry.data, **user_input, "qr_code_json": self._scanned_qr}
         if (client := await self._async_get_client(get_client_from_qr_code, data)) is None:
+            if self._login_error != "invalid_auth":
+                return self.async_show_form(
+                    step_id="reauth_scan_pin",
+                    data_schema=STEP_QR_PIN_SCHEMA,
+                    errors={"base": self._login_error},
+                    description_placeholders={"name": entry.title},
+                )
             return await self.async_step_reauth_scan_failed()
         return self._async_finish_qr_reauth(client, user_input)
 
@@ -427,7 +451,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         is_qr_code = entry.data["connection_type"] == "qrcode"
         login = get_client_from_qr_code if is_qr_code else get_client_from_username_password
         if (client := await self._async_get_client(login, {**entry.data, **user_input})) is None:
-            return self._async_show_reauth_confirm({"base": "invalid_auth"})
+            return self._async_show_reauth_confirm({"base": self._login_error})
         if is_qr_code:
             return self._async_finish_qr_reauth(client, user_input)
         return self.async_update_reload_and_abort(entry, data_updates=user_input)

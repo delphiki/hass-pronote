@@ -214,8 +214,10 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             raise ConfigEntryAuthFailed(
                 f"Pronote authentication failed: {err}"
             ) from err
-        except Exception:
+        except Exception as err:
             self.data = previous_data
+            if pronote_error(err):
+                raise UpdateFailed(f"Pronote error: {err}") from err
             raise
         if client is None:
             # Keep the last data for compare_data on the next update

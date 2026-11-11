@@ -5,8 +5,17 @@
             "reauth_successful": "Réauthentification réussie"
         },
         "error": {
+            "access_denied": "Pronote refuse l'accès, toutes les sessions sont peut-être occupées : réessayez plus tard",
+            "account_locked": "Trop d'erreurs d'authentification, Pronote bloque ce compte pour un moment : réessayez dans un quart d'heure",
             "cannot_connect": "Impossible de se connecter",
             "invalid_auth": "Erreur d'authentification",
+            "ip_blocked": "Pronote a suspendu cette adresse IP après trop d'essais : réessayez dans quelques heures",
+            "maintenance": "Pronote est en maintenance (opérations en cours sur la base) : réessayez plus tard",
+            "pronote_error": "Pronote a renvoyé une erreur technique : réessayez plus tard",
+            "proxy_refused": "Pronote refuse les connexions par un proxy public, coupez le VPN ou le proxy",
+            "session_expired": "La session Pronote a expiré : réessayez",
+            "site_unavailable": "Le site Pronote est actuellement indisponible : réessayez plus tard",
+            "space_not_published": "Cet espace Pronote n'est pas activé par l'établissement, vérifiez le type de compte",
             "unknown": "Une erreur est survenue",
             "https_required": "Le scan nécessite d'accéder à Home Assistant en HTTPS. Sinon, utilisez l'option QR code et collez le contenu JSON."
         },
