@@ -881,7 +881,8 @@ class PronotePeriodsSensor(PronoteGenericSensor):
         """Return the state attributes."""
         attributes = super().extra_state_attributes
         periods = []
-        current_period_name = self.coordinator.data["current_period"].name
+        current_period = self.coordinator.data["current_period"]
+        current_period_name = current_period.name if current_period else None
         if not self.coordinator.data[self._key] is None:
             for period in self.coordinator.data[self._key]:
                 periods.append(
