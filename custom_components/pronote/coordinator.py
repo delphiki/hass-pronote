@@ -99,7 +99,56 @@ def get_averages(period):
         return averages
     except Exception as ex:
         _LOGGER.info("Error getting averages from period (%s): %s", period.name, ex)
+    # Fallback: some establishments only publish the student's average and
+    # not the class average / min / max, which makes pronotepy raise a
+    # ParsingError on every subject. Parse the raw reply tolerantly instead.
+    try:
+        return _parse_averages_tolerant(period)
+    except Exception as ex:
+        _LOGGER.info(
+            "Error getting averages (fallback) from period (%s): %s", period.name, ex
+        )
         return None
+
+
+def _raw_value(item: dict, key: str):
+    node = item.get(key)
+    if not isinstance(node, dict):
+        return None
+    value = node.get("V")
+    if isinstance(value, str) and "|" in value:
+        # Pronote special grades ("|1" = Absent, ...): same translation as pronotepy
+        try:
+            from pronotepy.dataClasses import Util
+
+            return Util.grade_parse(value)
+        except Exception:
+            return None
+    return value
+
+
+def _parse_averages_tolerant(period):
+    response = period._client.post(
+        "DernieresNotes", 198, {"Periode": {"N": period.id, "L": period.name}}
+    )
+    services = response["dataSec"]["data"]["listeServices"]["V"]
+    averages = []
+    for item in services:
+        averages.append(
+            SimpleNamespace(
+                student=_raw_value(item, "moyEleve"),
+                class_average=_raw_value(item, "moyClasse"),
+                max=_raw_value(item, "moyMax"),
+                min=_raw_value(item, "moyMin"),
+                out_of=_raw_value(item, "baremeMoyEleve"),
+                default_out_of=_raw_value(item, "baremeMoyEleveParDefaut") or "",
+                subject=SimpleNamespace(
+                    id=item.get("N"), name=item.get("L"), groups=False
+                ),
+                background_color=(item.get("couleur") or None),
+            )
+        )
+    return averages
 
 
 def get_punishments(period):
