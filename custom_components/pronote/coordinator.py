@@ -159,6 +159,16 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             ),
         )
         self.config_entry = entry
+        self.pending_marks: list[dict] = []
+
+    def queue_read_mark(self, key: str, read: bool, acknowledge: bool) -> bool:
+        """Queue a read mark for the next refresh. False when the information is not in the current data."""
+        informations = (self.data or {}).get("information_and_surveys") or []
+        if not any(information_key(information) == key for information in informations):
+            return False
+        others = [mark for mark in self.pending_marks if mark["key"] != key]
+        self.pending_marks = others[-49:] + [{"key": key, "read": read, "acknowledge": acknowledge}]
+        return True
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         previous_data = None if self.data is None else self.data.copy()
@@ -195,6 +205,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "punishments": [],
             "menus": [],
             "information_and_surveys": [],
+            "information_acknowledgments": {},
             "periods": [],
             "current_period": None,
             "previous_periods": [],
@@ -422,31 +433,41 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting homework_period from pronote: %s", ex)
 
         # Information and Surveys
-        try:
-            date_from = datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS), datetime.min.time())
+        async def _load_information_and_surveys():
+            try:
+                date_from = datetime.combine(today - timedelta(days=INFO_SURVEY_LIMIT_MAX_DAYS), datetime.min.time())
 
-            def _get_information_and_surveys():
-                # Fetch content while the client is alive, the formatter reads pronotepy's cache
-                information_and_surveys = client.information_and_surveys(date_from)
-                for information_and_survey in information_and_surveys:
-                    try:
-                        information_and_survey.content()
-                        information_and_survey.attachments()
-                    except Exception as ex:
-                        _LOGGER.info("Error getting information content from pronote: %s", ex)
-                return information_and_surveys
+                def _get_information_and_surveys():
+                    # Fetch content while the client is alive, the formatter reads pronotepy's cache
+                    information_and_surveys = client.information_and_surveys(date_from)
+                    for information_and_survey in information_and_surveys:
+                        try:
+                            information_and_survey.content()
+                            information_and_survey.attachments()
+                        except Exception as ex:
+                            _LOGGER.info("Error getting information content from pronote: %s", ex)
+                    return information_and_surveys
 
-            information_and_surveys = await self.hass.async_add_executor_job(
-                _get_information_and_surveys
-            )
-            self.data["information_and_surveys"] = sorted(
-                information_and_surveys,
-                key=lambda information_and_survey: information_and_survey.creation_date,
-                reverse=True,
-            )
-        except Exception as ex:
-            self.data["information_and_surveys"] = None
-            _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+                information_and_surveys = await self.hass.async_add_executor_job(
+                    _get_information_and_surveys
+                )
+                self.data["information_and_surveys"] = sorted(
+                    information_and_surveys,
+                    key=lambda information_and_survey: information_and_survey.creation_date,
+                    reverse=True,
+                )
+            except Exception as ex:
+                self.data["information_and_surveys"] = None
+                _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+            try:
+                self.data["information_acknowledgments"] = await self.hass.async_add_executor_job(
+                    information_acknowledgments, client
+                )
+            except Exception as ex:
+                self.data["information_acknowledgments"] = {}
+                _LOGGER.info("Error getting information acknowledgments from pronote: %s", ex)
+
+        await _load_information_and_surveys()
 
         # Absences
         self.data["absences"] = await self.hass.async_add_executor_job(
@@ -585,6 +606,17 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ] = await self.hass.async_add_executor_job(
                         get_overall_average, period
                     )
+
+        # Read marks queued by the pronote.mark_as_read action. Applied last: when PRONOTE rejects
+        # a request pronotepy logs in again, and what was fetched before is stale for any later call.
+        # The information list is then read again so the sensor shows what PRONOTE kept.
+        marks, self.pending_marks = self.pending_marks, []
+        if marks:
+            try:
+                await self.hass.async_add_executor_job(apply_read_marks, client, marks)
+            except Exception as ex:
+                _LOGGER.warning("Error applying read marks to pronote: %s", ex)
+            await _load_information_and_surveys()
 
         # Serialize periods to plain objects (drops back-references to client)
         self.data["periods"] = (

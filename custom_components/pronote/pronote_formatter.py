@@ -1,5 +1,6 @@
 """Data Formatter for the Pronote integration."""
 
+import hashlib
 import logging
 from datetime import datetime
 from slugify import slugify
@@ -9,6 +10,20 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def information_key(information) -> str:
+    """Key of an information that survives a new session: PRONOTE ids change at every login."""
+    parts = (information.creation_date, information.title, information.author)
+    return hashlib.sha1("|".join(str(part) for part in parts).encode()).hexdigest()[:12]
+
+
+def information_answer(information) -> dict:
+    """Answer state of an information ("reponse" of its only question), {} when unknown."""
+    try:
+        return information._raw_content[0]["reponse"]["V"]
+    except (AttributeError, IndexError, KeyError, TypeError):
+        return {}
 
 
 def format_displayed_lesson(lesson):
@@ -231,6 +246,8 @@ def format_information_and_survey(information_and_survey) -> dict:
         content = None
 
     return {
+        "key": information_key(information_and_survey),
+        "acknowledgment_required": information_answer(information_and_survey).get("estReponseAttendue"),
         "author": information_and_survey.author,
         "title": information_and_survey.title,
         "read": information_and_survey.read,

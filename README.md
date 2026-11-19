@@ -105,6 +105,22 @@ For each previous period (e.g. `trimestre_1`), the following sensors are also cr
 
 The sensors are updated every 15 minutes.
 
+### Marking information as read
+
+Each item of `[...]_information_and_surveys` has a `key`, stable across sessions, and tells whether the school asked to confirm its reading (`acknowledgment_required`) and whether it was confirmed (`acknowledged`, `acknowledged_at`).
+
+The `pronote.mark_as_read` action marks an information as read or unread in Pronote:
+
+```yaml
+action: pronote.mark_as_read
+data:
+  key: 3f2a9c81d0e4      # from the sensor attributes
+  read: true             # false to mark as unread
+  acknowledge: false     # true to also confirm the reading to the school
+```
+
+Read and confirmed are two separate states in Pronote: reading an information never confirms it. Confirming is only done with `acknowledge: true`, the school then sees who confirmed and when, and it cannot be undone. The mark is applied by a refresh started right away, so the sensor shows the new state a few seconds later.
+
 ## Cards
 
 Cards are available here: https://github.com/delphiki/lovelace-pronote

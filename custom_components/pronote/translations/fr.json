@@ -240,5 +240,25 @@
         "calendar": {
             "timetable": { "name": "Emploi du temps" }
         }
+    },
+    "services": {
+        "mark_as_read": {
+            "name": "Marquer une information comme lue",
+            "description": "Marque une information de l'onglet Informations et sondages comme lue ou non lue dans Pronote, et peut en confirmer la lecture à l'établissement. Appliqué par une actualisation lancée aussitôt.",
+            "fields": {
+                "key": {
+                    "name": "Clé",
+                    "description": "La « key » de l'information, dans les attributs du capteur Informations et sondages."
+                },
+                "read": {
+                    "name": "Lue",
+                    "description": "Désactiver pour marquer comme non lue."
+                },
+                "acknowledge": {
+                    "name": "Confirmer la lecture",
+                    "description": "Confirme aussi la lecture quand l'établissement l'a demandée (accusé de réception). L'établissement voit qui a confirmé et quand. Ce n'est pas annulable."
+                }
+            }
+        }
     }
 }

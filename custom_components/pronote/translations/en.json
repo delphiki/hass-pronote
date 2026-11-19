@@ -240,5 +240,25 @@
         "calendar": {
             "timetable": { "name": "Timetable" }
         }
+    },
+    "services": {
+        "mark_as_read": {
+            "name": "Mark information as read",
+            "description": "Marks an information of the information and surveys tab as read or unread in Pronote, and can confirm its reading to the school. Applied by a refresh requested right away.",
+            "fields": {
+                "key": {
+                    "name": "Key",
+                    "description": "The \"key\" of the information, from the attributes of the information and surveys sensor."
+                },
+                "read": {
+                    "name": "Read",
+                    "description": "Turn off to mark as unread."
+                },
+                "acknowledge": {
+                    "name": "Confirm reading",
+                    "description": "Also confirm the reading when the school asked for it (acknowledgment). The school sees who confirmed and when. It cannot be undone."
+                }
+            }
+        }
     }
 }
