@@ -6,6 +6,7 @@ from slugify import slugify
 
 from .const import (
     HOMEWORK_DESC_MAX_LENGTH,
+    MESSAGE_CONTENT_MAX_LENGTH,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -244,6 +245,16 @@ def format_discussion(discussion) -> dict:
         "unread": discussion.unread,
         "closed": discussion.closed,
         "labels": discussion.labels,
+    }
+
+
+def format_unread_message(discussion, message) -> dict:
+    return {
+        "subject": discussion.subject,
+        "creator": discussion.creator,
+        "author": message.author,
+        "date": message.created,
+        "content": (message.content or "")[:MESSAGE_CONTENT_MAX_LENGTH],
     }
 
 

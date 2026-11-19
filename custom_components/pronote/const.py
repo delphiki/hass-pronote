@@ -18,6 +18,7 @@ HOMEWORK_DESC_MAX_LENGTH = 125
 
 # Cap on the discussions exposed as an attribute (HA attribute size limit)
 DISCUSSIONS_LIMIT = 50
+MESSAGE_CONTENT_MAX_LENGTH = 4000
 
 # default values for options
 DEFAULT_REFRESH_INTERVAL = 15

@@ -148,6 +148,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "menus": [],
             "information_and_surveys": [],
             "discussions": [],
+            "unread_messages": [],
             "periods": [],
             "current_period": None,
             "previous_periods": [],
@@ -352,10 +353,15 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Discussions (Pronote order kept: Discussion.date costs one request each)
         try:
-            discussions = await self.hass.async_add_executor_job(client.discussions)
-            self.data["discussions"] = discussions[:DISCUSSIONS_LIMIT]
+            (
+                self.data["discussions"],
+                self.data["unread_messages"],
+            ) = await self.hass.async_add_executor_job(
+                get_discussions, client, DISCUSSIONS_LIMIT
+            )
         except Exception as ex:
             self.data["discussions"] = None
+            self.data["unread_messages"] = None
             _LOGGER.info("Error getting discussions from pronote: %s", ex)
 
         # No usable Discussion id in pronotepy: identify by (subject, creator)
@@ -365,6 +371,13 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             ["subject", "creator"],
             "new_discussion",
             format_discussion,
+        )
+        self.compare_data(
+            previous_data,
+            "unread_messages",
+            ["subject", "creator", "author", "date"],
+            "new_message",
+            lambda message: message,
         )
 
         # Absences

@@ -35,6 +35,8 @@ import pronotepy
 from . import pronotepy_hotfix  # noqa: F401
 ### End Hotfix
 
+from .pronote_formatter import format_unread_message
+
 import json
 import logging
 import re
@@ -155,6 +157,21 @@ def get_client_from_qr_code(data) -> pronotepy.Client | pronotepy.ParentClient |
         device_name=qr_code_device_name,
         client_identifier=qr_code_client_identifier,
     )
+
+
+def get_discussions(client, limit: int) -> tuple[list, list]:
+    """Discussions, and the unread messages of those that have some (one request per such discussion).
+
+    Reading the messages does not mark them as read.
+    """
+    discussions = client.discussions()[:limit]
+    unread_messages = [
+        format_unread_message(discussion, message)
+        for discussion in discussions
+        if discussion.unread
+        for message in discussion.messages[-discussion.unread:]
+    ]
+    return discussions, unread_messages
 
 
 def get_day_start_at(lessons):

@@ -783,6 +783,9 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
 class PronoteDiscussionsSensor(PronoteGenericSensor):
     """Representation of a Pronote sensor."""
 
+    # Message contents would fill the database at every refresh
+    _unrecorded_attributes = frozenset({"discussions"})
+
     def __init__(self, coordinator) -> None:
         """Initialize the Pronote sensor."""
         super().__init__(
@@ -801,8 +804,16 @@ class PronoteDiscussionsSensor(PronoteGenericSensor):
         unread_count = None
         if not self.coordinator.data["discussions"] is None:
             unread_count = 0
+            unread_messages = self.coordinator.data["unread_messages"] or []
             for discussion in self.coordinator.data["discussions"]:
-                discussions.append(format_discussion(discussion))
+                formatted = format_discussion(discussion)
+                formatted["unread_messages"] = [
+                    message
+                    for message in unread_messages
+                    if (message["subject"], message["creator"])
+                    == (discussion.subject, discussion.creator)
+                ]
+                discussions.append(formatted)
                 unread_count += discussion.unread
 
         attributes["unread_count"] = unread_count
