@@ -816,9 +816,13 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
             for information_and_survey in self.coordinator.data[
                 "information_and_surveys"
             ]:
-                information_and_surveys.append(
-                    format_information_and_survey(information_and_survey)
-                )
+                formatted = format_information_and_survey(information_and_survey)
+                confirmed = (
+                    self.coordinator.data.get("information_acknowledgments") or {}
+                ).get(formatted["key"])
+                formatted["acknowledged"] = confirmed is not None
+                formatted["acknowledged_at"] = confirmed
+                information_and_surveys.append(formatted)
                 if information_and_survey.read is False:
                     unread_count += 1
 

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed, ServiceValidationError
+from homeassistant.helpers import config_validation as cv
+
+import voluptuous as vol
 
 from datetime import timedelta
 
@@ -15,6 +18,15 @@ from .coordinator import PronoteDataUpdateCoordinator
 from .const import DOMAIN, PLATFORMS, DEFAULT_REFRESH_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
+
+SERVICE_MARK_AS_READ = "mark_as_read"
+MARK_AS_READ_SCHEMA = vol.Schema(
+    {
+        vol.Required("key"): cv.string,
+        vol.Optional("read", default=True): cv.boolean,
+        vol.Optional("acknowledge", default=False): cv.boolean,
+    }
+)
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
@@ -48,6 +60,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
     }
+
+    if not hass.services.has_service(DOMAIN, SERVICE_MARK_AS_READ):
+
+        async def _mark_as_read(call: ServiceCall) -> None:
+            """Queue the mark and refresh: it is applied with the client of the regular update."""
+            coordinators = [
+                data["coordinator"]
+                for data in hass.data[DOMAIN].values()
+                if data["coordinator"].queue_read_mark(
+                    call.data["key"], call.data["read"], call.data["acknowledge"]
+                )
+            ]
+            if not coordinators:
+                raise ServiceValidationError(f"Unknown information key: {call.data['key']}")
+            for coordinator in coordinators:
+                await coordinator.async_request_refresh()
+
+        hass.services.async_register(
+            DOMAIN, SERVICE_MARK_AS_READ, _mark_as_read, schema=MARK_AS_READ_SCHEMA
+        )
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
 

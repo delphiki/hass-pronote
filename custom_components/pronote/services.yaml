@@ -1,0 +1,14 @@
+mark_as_read:
+  fields:
+    key:
+      required: true
+      selector:
+        text:
+    read:
+      default: true
+      selector:
+        boolean:
+    acknowledge:
+      default: false
+      selector:
+        boolean:
