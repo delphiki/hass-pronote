@@ -30,6 +30,7 @@ from .const import (
     LESSON_NEXT_DAY_SEARCH_LIMIT,
     HOMEWORK_MAX_DAYS,
     INFO_SURVEY_LIMIT_MAX_DAYS,
+    DISCUSSIONS_LIMIT,
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
@@ -195,6 +196,8 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "punishments": [],
             "menus": [],
             "information_and_surveys": [],
+            "discussions": [],
+            "unread_messages": [],
             "periods": [],
             "current_period": None,
             "previous_periods": [],
@@ -447,6 +450,35 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         except Exception as ex:
             self.data["information_and_surveys"] = None
             _LOGGER.info("Error getting information_and_surveys from pronote: %s", ex)
+
+        # Discussions (Pronote order kept: Discussion.date costs one request each)
+        try:
+            (
+                self.data["discussions"],
+                self.data["unread_messages"],
+            ) = await self.hass.async_add_executor_job(
+                get_discussions, client, DISCUSSIONS_LIMIT
+            )
+        except Exception as ex:
+            self.data["discussions"] = None
+            self.data["unread_messages"] = None
+            _LOGGER.info("Error getting discussions from pronote: %s", ex)
+
+        # No usable Discussion id in pronotepy: identify by (subject, creator)
+        self.compare_data(
+            previous_data,
+            "discussions",
+            ["subject", "creator"],
+            "new_discussion",
+            format_discussion,
+        )
+        self.compare_data(
+            previous_data,
+            "unread_messages",
+            ["subject", "creator", "author", "date"],
+            "new_message",
+            lambda message: message,
+        )
 
         # Absences
         self.data["absences"] = await self.hass.async_add_executor_job(

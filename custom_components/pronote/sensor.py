@@ -116,6 +116,7 @@ async def async_setup_entry(
         ),
         # generic sensors
         PronoteInformationAndSurveysSensor(coordinator),
+        PronoteDiscussionsSensor(coordinator),
         PronoteGenericSensor(
             coordinator, "ical_url", "Timetable iCal URL",
             translation_key="ical_url",
@@ -824,6 +825,48 @@ class PronoteInformationAndSurveysSensor(PronoteGenericSensor):
 
         attributes["unread_count"] = unread_count
         attributes["information_and_surveys"] = information_and_surveys
+
+        return attributes
+
+
+class PronoteDiscussionsSensor(PronoteGenericSensor):
+    """Representation of a Pronote sensor."""
+
+    # Message contents would fill the database at every refresh
+    _unrecorded_attributes = frozenset({"discussions"})
+
+    def __init__(self, coordinator) -> None:
+        """Initialize the Pronote sensor."""
+        super().__init__(
+            coordinator,
+            "discussions",
+            "Discussions",
+            len_or_none(coordinator.data["discussions"]),
+            translation_key="discussions",
+        )
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = super().extra_state_attributes
+        discussions = []
+        unread_count = None
+        if not self.coordinator.data["discussions"] is None:
+            unread_count = 0
+            unread_messages = self.coordinator.data["unread_messages"] or []
+            for discussion in self.coordinator.data["discussions"]:
+                formatted = format_discussion(discussion)
+                formatted["unread_messages"] = [
+                    message
+                    for message in unread_messages
+                    if (message["subject"], message["creator"])
+                    == (discussion.subject, discussion.creator)
+                ]
+                discussions.append(formatted)
+                unread_count += discussion.unread
+
+        attributes["unread_count"] = unread_count
+        attributes["discussions"] = discussions
 
         return attributes
 
