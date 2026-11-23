@@ -21,5 +21,9 @@ DEFAULT_REFRESH_INTERVAL = 15
 DEFAULT_ALARM_OFFSET = 60
 UPDATE_TIMEOUT = 300
 DEFAULT_LUNCH_BREAK_TIME = "13:00"
+# "auto" keeps the period PRONOTE reports as current; a school can declare
+# trimestres and semestres at once while grading only one of them
+PERIOD_TYPES = ["auto", "trimestre", "semestre", "mi-semestre"]
+DEFAULT_PERIOD_TYPE = "auto"
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
