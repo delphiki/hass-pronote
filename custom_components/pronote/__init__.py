@@ -12,7 +12,7 @@ import logging
 
 from .coordinator import PronoteDataUpdateCoordinator
 
-from .const import DOMAIN, PLATFORMS, DEFAULT_REFRESH_INTERVAL
+from .const import DOMAIN, PLATFORMS, DEFAULT_REFRESH_INTERVAL, DEFAULT_PERIOD_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
+        "period_type": entry.options.get("period_type", DEFAULT_PERIOD_TYPE),
     }
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -87,6 +88,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Handle options update."""
+    # the period sensors are created from the current period at setup
+    if entry.options.get("period_type", DEFAULT_PERIOD_TYPE) != hass.data[DOMAIN][
+        entry.entry_id
+    ].get("period_type", DEFAULT_PERIOD_TYPE):
+        hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))
+        return True
+
     hass.data[DOMAIN][entry.entry_id]["coordinator"].update_interval = timedelta(
         minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
     )

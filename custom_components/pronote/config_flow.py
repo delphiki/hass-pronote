@@ -57,6 +57,8 @@ from .const import (
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
     DEFAULT_LUNCH_BREAK_TIME,
+    DEFAULT_PERIOD_TYPE,
+    PERIOD_TYPES,
 )
 
 
@@ -516,6 +518,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             "alarm_offset", DEFAULT_ALARM_OFFSET
                         ),
                     ): int,
+                    vol.Optional(
+                        "period_type",
+                        default=config_entry.options.get(
+                            "period_type", DEFAULT_PERIOD_TYPE
+                        ),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=PERIOD_TYPES, translation_key="period_type"
+                        )
+                    ),
                 }
             ),
         )

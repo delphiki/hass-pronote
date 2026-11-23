@@ -33,25 +33,30 @@ from .const import (
     EVENT_TYPE,
     DEFAULT_REFRESH_INTERVAL,
     DEFAULT_ALARM_OFFSET,
+    DEFAULT_PERIOD_TYPE,
     UPDATE_TIMEOUT,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_current_period(client):
+def get_current_period(client, period_type=DEFAULT_PERIOD_TYPE):
     """Current period, falling back on client.periods for parent accounts."""
-    try:
-        return client.current_period
-    except Exception as ex:
-        _LOGGER.info("Error getting current period from pronote: %s", ex)
+    if period_type == DEFAULT_PERIOD_TYPE:
+        try:
+            return client.current_period
+        except Exception as ex:
+            _LOGGER.info("Error getting current period from pronote: %s", ex)
+        period_types = ("trimestre", "semestre")
+    else:
+        period_types = (period_type,)
     today = date.today()
     try:
         periods = [p for p in client.periods if p.start.date() <= today <= p.end.date()]
     except Exception as ex:
         _LOGGER.info("Error getting periods from pronote: %s", ex)
         return None
-    for period_type in ("trimestre", "semestre"):
+    for period_type in period_types:
         for period in periods:
             if period.name.lower().startswith(period_type):
                 return period
@@ -285,7 +290,9 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         )
 
         current_period = await self.hass.async_add_executor_job(
-            get_current_period, client
+            get_current_period,
+            client,
+            self.config_entry.options.get("period_type", DEFAULT_PERIOD_TYPE),
         )
 
         # Lessons
@@ -519,7 +526,7 @@ class PronoteDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             _LOGGER.info("Error getting current period from pronote: %s", ex)
 
         # determine previous periods (handle only trimestres and semestres)
-        supported_period_types = ["trimestre", "semestre"]
+        supported_period_types = ["trimestre", "semestre", "mi-semestre"]
         period_type = None
         raw_previous_periods = []
         if raw_current_period is not None:
